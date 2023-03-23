@@ -1,0 +1,9 @@
+[submodule "alpaca-lora"]
+	path = alpaca-lora
+	url = https://github.com/bowenwen/alpaca-lora.git
+[submodule "transformers"]
+	path = transformers
+	url = https://github.com/bowenwen/transformers.git
+[submodule "text-generation-webui"]
+	path = text-generation-webui
+	url = https://github.com/bowenwen/text-generation-webui.git
