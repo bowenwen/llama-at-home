@@ -7,3 +7,6 @@
 [submodule "text-generation-webui"]
 	path = text-generation-webui
 	url = https://github.com/bowenwen/text-generation-webui.git
+[submodule "langchain"]
+	path = langchain
+	url = https://github.com/hwchase17/langchain.git
