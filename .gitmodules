@@ -2,11 +2,11 @@
 	path = alpaca-lora
 	url = https://github.com/bowenwen/alpaca-lora.git
 [submodule "transformers"]
-	path = transformers
+	path = packages/transformers
 	url = https://github.com/bowenwen/transformers.git
 [submodule "text-generation-webui"]
 	path = text-generation-webui
 	url = https://github.com/bowenwen/text-generation-webui.git
 [submodule "langchain"]
-	path = langchain
+	path = packages/langchain
 	url = https://github.com/hwchase17/langchain.git
