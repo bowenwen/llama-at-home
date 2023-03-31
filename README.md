@@ -18,6 +18,8 @@ pip install -r requirements.txt
 # install dev version of transformers
 #pip install git+https://github.com/huggingface/transformers --force-reinstall
 cd ../packages/transformers
+pip install cmake lit
+pip install sentence_transformers
 pip install . --force-reinstall
 # install dev version of langchain
 cd ../../packages/langchain
@@ -63,7 +65,7 @@ cd repositories
 git clone https://github.com/qwopqwop200/GPTQ-for-LLaMa
 cd GPTQ-for-LLaMa
 git pull
-git checkout main
+git checkout cuda
 python setup_cuda.py install
 ```
 
@@ -76,7 +78,12 @@ python convert_llama_weights_to_hf.py --input_dir path_to_model/downloads --mode
 python convert_llama_weights_to_hf.py --input_dir path_to_model/downloads --model_size 65B --output_dir ../../models_converted
 ```
 
-The models need to be placed in the `models/` folder within text-generation-webui
+The models need to be placed in the `models/` folder within text-generation-webui.
+
+Linking the model folder so it can be accessed by multiple apps:
+```bash
+ln -s ./text-generation-webui/models/ ./models
+```
 
 ### 4. Start the UI
 
@@ -84,22 +91,16 @@ The models need to be placed in the `models/` folder within text-generation-webu
 conda activate textgen
 
 # use 8 bits
-python server.py --listen --load-in-8bit --no-stream --model llama-13b
 python server.py --listen --load-in-8bit --no-stream --model llama-7b
-# python server.py --listen --model llama-7b  --lora alpaca-lora-7b  --load-in-8bit
+python server.py --listen --load-in-8bit --no-stream --model llama-13b
 
 # Or, use 4 bits
-python server.py --gptq-bits 4 --no-stream --model llama-7b --chat
-python server.py --gptq-bits 4 --no-stream --model llama-13b --chat
-python server.py --gptq-bits 4 --no-stream --model llama-30b --chat
-
-python server.py --load-in-8bit --no-stream --model llama-13b --lora alpaca13B-lora --listen --chat
+python server.py --listen --model llama-7b-4bit-128g --wbits 4 --groupsize 128 --no-stream --chat
+python server.py --listen --model llama-13b-4bit-128g --wbits 4 --groupsize 128 -chat
 
 # Running with LoRA
+python server.py --listen --model llama-7b  --lora alpaca-lora-7b  --load-in-8bit
 python server.py --load-in-8bit --no-stream --model llama-13b --lora alpaca13B-lora --listen
-python server.py --gptq-bits 4 --no-stream --model llama-13b --lora alpaca13B-lora
-python server.py --gptq-bits 4 --no-stream --model llama-30b --lora alpaca-lora-30b
-# python server.py --gptq-bits 4 --no-stream --model llama-30b --lora alpaca-lora-30b
 
 # Starting API (same with regular but no chat), api at `http://{server}:7860/api/textgen`
 python server.py --listen --listen-port 7860 --load-in-8bit --no-stream --model llama-7b
