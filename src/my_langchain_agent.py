@@ -1,5 +1,3 @@
-import os
-import json
 from pathlib import Path
 from langchain.llms import HuggingFacePipeline
 from transformers import (
@@ -10,15 +8,8 @@ from transformers import (
     pipeline,
 )
 from langchain.embeddings import HuggingFaceEmbeddings
+from my_langchain_docs import MyLangchainRedisDocsHandler
 
-from langchain.document_loaders import TextLoader
-from langchain.document_loaders import UnstructuredPDFLoader
-
-from langchain.vectorstores import Chroma
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.indexes.vectorstore import VectorStoreIndexWrapper
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.chains import RetrievalQA
 
 # model_id = "gpt2"
 model_name = "llama-7b"
@@ -59,55 +50,6 @@ text = "Jim is a helpful business analyst that gives simple, practical answers t
 # text_response = hf(text)
 # print(f"{text_response}\n")
 # print(f"{'='*10}\n")
-
-# index documents
-loaded_doc_file = "docs/doc_loaded.json"
-doc_list = [
-    "docs/examples/state_of_the_union.txt",
-    "docs/arxiv/2302.13971.pdf",
-    # "docs/psych/DSM-5-TR.pdf",
-    # "docs/psych/Synopsis_of_Psychiatry.pdf",
-]
-
-
-def smart_doc_load(doc_list, loaded_doc_file):
-    loader_list = []
-    for doc in doc_list:
-        # get json record of docs loaded
-        if os.path.exists(loaded_doc_file):
-            with open(loaded_doc_file) as jfile:
-                doc_loaded = json.loads(jfile.read())
-        else:
-            doc_loaded = []
-        # check if doc has already been loaded, if so, skip
-        if doc in doc_loaded:
-            print(f"skipping {doc}")
-        else:
-            # load documents by type
-            file_type = doc.split("/")[-1].split(".")[-1]
-            if file_type == "txt":
-                loader_list.append(TextLoader(doc))
-            elif file_type == "pdf":
-                loader_list.append(UnstructuredPDFLoader(doc))
-            # save json record of docs loaded
-            print(f"loaded {doc}")
-            doc_loaded.append(doc)
-            with open(loaded_doc_file, "w") as outfile:
-                json.dump(doc_loaded, outfile)
-    return loader_list
-
-
-# https://python.langchain.com/en/latest/modules/indexes/vectorstores/examples/redis.html
-loader_list = smart_doc_load(doc_list, loaded_doc_file)
-vectorstore_kwargs = {"persist_directory": "./.chroma/persist"}
-index = VectorstoreIndexCreator(
-    embedding=embeddings, vectorstore_kwargs=vectorstore_kwargs
-).from_loaders(loader_list)
-print(f"processed {loader_list} into vector store")
-
-
-# db = Chroma(embedding_function=embeddings, **vectorstore_kwargs)
-# loaded_index = VectorStoreIndexWrapper(vectorstore=db)
 
 # query = "What did the president say about Ketanji Brown Jackson"
 # docs = db.similarity_search(query)
