@@ -19,12 +19,20 @@ pip install -r requirements.txt
 #pip install git+https://github.com/huggingface/transformers --force-reinstall
 cd ../packages/transformers
 pip install cmake lit
-pip install sentence_transformers
 pip install . --force-reinstall
 # install dev version of langchain
 cd ../../packages/langchain
 conda activate texgen
 pip install . --force-reinstall
+# install additional packages used by langchain
+pip install sentence_transformers
+pip install chromadb
+pip install redis
+pip install unstructured
+pip install unstructured[local-inference]
+pip install 'git+https://github.com/facebookresearch/detectron2.git'
+conda install poppler
+conda install pytesseract
 ```
 
 ### 3. Obtain weights
@@ -139,10 +147,11 @@ To be completed...
 
 ## Working with LangChain
 
-To be completed...
+Set up documents
 
 ```bash
-
+mkdir -p ./docs/arxiv/
+cp /homenas/media/coder/projects/LLM-documents/arxiv/* ./docs/arxiv/
 ```
 
 Some reading materials on Langchain
