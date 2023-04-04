@@ -20,9 +20,13 @@ class MyLangchainDocsHandler:
     """a wrapper to make loading my documents easier"""
 
     DEFAULT_DOMAIN = "localhost"
+    CHROMA_DIR = "./.chroma"
+    DOC_DIR = "./docs"
 
-    def __init__(self, embeddings, redis_host=DEFAULT_DOMAIN):
+    def __init__(self, embeddings, redis_host=None):
         self.embeddings = embeddings
+        if redis_host == None:
+            redis_host = self.DEFAULT_DOMAIN
         self.redis_host = redis_host
 
     def index_from_redis(self, index_name):
@@ -33,17 +37,7 @@ class MyLangchainDocsHandler:
         )
         return rds
 
-    def load_docs_into_chroma(self, doc_list, loaded_doc_file):
-        loader_list = self.smart_generate_doc_loaders(doc_list, loaded_doc_file)
-        vectorstore_kwargs = {"persist_directory": "./.chroma/persist"}
-
-        index = VectorstoreIndexCreator(
-            embedding=self.embeddings, vectorstore_kwargs=vectorstore_kwargs
-        ).from_loaders(loader_list)
-
-        return index
-
-    def load_docs_into_redis(self, doc_list, loaded_doc_file):
+    def load_docs_into_redis(self, doc_list, index_name):
 
         # https://python.langchain.com/en/latest/modules/indexes/vectorstores/examples/redis.html
 
@@ -56,63 +50,77 @@ class MyLangchainDocsHandler:
             docs,
             self.embeddings,
             redis_url=f"redis://{self.redis_host}:6379",
-            index_name="link",
+            index_name=index_name,
         )
         # rds.index_name
         query = "What did the president say about Ketanji Brown Jackson"
         results = rds.similarity_search(query)
         print(results[0].page_content)
-        print(f"processed {loader_list} into vector store")
 
-    @staticmethod
-    def smart_generate_doc_loaders(doc_list, loaded_doc_file):
+    def load_docs_into_chroma(self, doc_list, index_name):
+
+        filtered_doc_list = self.filter_doc_list(doc_list, index_name)
+
+        # load documents by type
         loader_list = []
+        for doc in filtered_doc_list:
+            file_type = doc.split("/")[-1].split(".")[-1]
+            if file_type == "txt":
+                loader_list.append(TextLoader(doc))
+            elif file_type == "pdf":
+                loader_list.append(UnstructuredPDFLoader(doc))
+
+        vectorstore_kwargs = {"persist_directory": f"{self.CHROMA_DIR}/{index_name}"}
+
+        index = VectorstoreIndexCreator(
+            embedding=self.embeddings, vectorstore_kwargs=vectorstore_kwargs
+        ).from_loaders(loader_list)
+
+        return index
+
+    def filter_doc_list(self, doc_list, index_name):
+        filtered_doc_list = []
         for doc in doc_list:
             # get json record of docs loaded
-            if os.path.exists(loaded_doc_file):
-                with open(loaded_doc_file, "r") as jfile:
-                    doc_loaded = json.loads(jfile.read())
+            index_record_file = f"{self.DOC_DIR}/{index_name}.json"
+            if os.path.exists(index_record_file):
+                with open(index_record_file, "r") as jfile:
+                    filtered_doc_list = json.loads(jfile.read())
             else:
-                doc_loaded = []
+                filtered_doc_list = []
             # check if doc has already been loaded, if so, skip
-            if doc in doc_loaded:
+            if doc in filtered_doc_list:
                 print(f"skipping {doc}")
             else:
-                # load documents by type
-                file_type = doc.split("/")[-1].split(".")[-1]
-                if file_type == "txt":
-                    loader_list.append(TextLoader(doc))
-                elif file_type == "pdf":
-                    loader_list.append(UnstructuredPDFLoader(doc))
                 # save json record of docs loaded
                 print(f"loaded {doc}")
-                doc_loaded.append(doc)
-                with open(loaded_doc_file, "w") as outfile:
-                    json.dump(doc_loaded, outfile)
-        return loader_list
+                filtered_doc_list.append(doc)
+                with open(index_record_file, "w") as outfile:
+                    json.dump(filtered_doc_list, outfile)
+        return filtered_doc_list
 
 
-if __name__ == "main":
+if __name__ == "__main__":
 
-    # index documents
-    loaded_doc_file = "docs/doc_loaded.json"
-    doc_list = [
-        "docs/examples/state_of_the_union.txt",
-        "docs/arxiv/2302.13971.pdf",
-        # "docs/psych/DSM-5-TR.pdf",
-        # "docs/psych/Synopsis_of_Psychiatry.pdf",
-    ]
-    tester = MyLangchainDocsHandler(embeddings=embedding, redis_host="192.168.1.236")
-    # index = tester.load_docs_into_redis(
-    #     doc_list=doc_list,
-    #     loaded_doc_file=loaded_doc_file,
-    #     embeddings=embedding,
-    #
+    # # index documents
+    # index_name = "docs/doc_loaded.json"
+    # doc_list = [
+    #     "docs/examples/state_of_the_union.txt",
+    #     "docs/arxiv/2302.13971.pdf",
+    #     # "docs/psych/DSM-5-TR.pdf",
+    #     # "docs/psych/Synopsis_of_Psychiatry.pdf",
+    # ]
+    # tester = MyLangchainDocsHandler(embeddings=embedding, redis_host="192.168.1.236")
+    # # index = tester.load_docs_into_redis(
+    # #     doc_list=doc_list,
+    # #     index_name=index_name,
+    # #     embeddings=embedding,
+    # #
+    # # )
+    # index = tester.load_docs_into_chroma(
+    #     doc_list=doc_list, index_name=index_name
     # )
-    index = tester.load_docs_into_chroma(
-        doc_list=doc_list, loaded_doc_file=loaded_doc_file
-    )
-    query = "What did the president say about Ketanji Brown Jackson"
-    doc_response = index.query(query, llm=hf)
-    print(f"Query - {query}\nResponse - \n{doc_response}")
+    # query = "What did the president say about Ketanji Brown Jackson"
+    # doc_response = index.query(query, llm=hf)
+    # print(f"Query - {query}\nResponse - \n{doc_response}")
     pass

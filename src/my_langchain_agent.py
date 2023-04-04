@@ -1,4 +1,9 @@
+import sys
+
+sys.path.append("./")
+
 from pathlib import Path
+from scipy.spatial import distance
 from langchain.llms import HuggingFacePipeline
 from transformers import (
     # AutoConfig,
@@ -14,38 +19,59 @@ from src.my_langchain_docs import MyLangchainDocsHandler
 class MyLangchainAgentHandler:
     """a wrapper to make creating a langchain agent easier"""
 
+    model_name = None
+    max_new_tokens = None
+    model = None
+    tokenizer = None
+    embedding = None
+    hf = None
+    model_loaded = False
+
     def __init__(self) -> None:
         """init function"""
-        self.model_name = None
-        self.max_new_tokens = None
-        self.model = None
-        self.tokenizer = None
-        self.embedding = None
-        self.hf = None
+        pass
 
-    def load_llama_llm(self, model_name=None, max_new_tokens=50):
+    @classmethod
+    def get_llama_llm(cls):
+        """get a previously loaded llama, if it was never loaded, return llama-7b with max_new_tokens=50
+
+        Returns:
+            model_asset_tuple: a size three tuple of HuggingFacePipeline, model and tokenizer
+        """
+        if cls.model_loaded is False:
+            cls.load_llama_llm(model_name="llama-7b", max_new_tokens=50)
+            return (cls.hf, cls.model, cls.tokenizer)
+        return (cls.hf, cls.model, cls.tokenizer)
+
+    @classmethod
+    def load_llama_llm(cls, model_name=None, max_new_tokens=50):
         """quick loader of a local llama model
 
         Args:
             model_name (str, optional): the model name of llama or the folder name with models folder. Defaults to None.
             max_new_tokens (int, optional): max token size used for model. Defaults to 50.
 
-        Returns:model_asset_tuple: a size three tuple of HuggingFacePipeline, model and tokenizer
+        Returns:
+            model_asset_tuple: a size three tuple of HuggingFacePipeline, model and tokenizer
         """
-        if model_name == None:
-            self.model_name = "llama-7b"
-        else:
-            self.model_name = model_name
+        if cls.model_loaded and cls.model_name == model_name:
+            # return previously loaded model
+            return (cls.hf, cls.model, cls.tokenizer)
 
-        model_path = f"models/{self.model_name}"
-        self.max_new_tokens = max_new_tokens
+        if model_name == None:
+            cls.model_name = "llama-7b"
+        else:
+            cls.model_name = model_name
+
+        model_path = f"models/{cls.model_name}"
+        cls.max_new_tokens = max_new_tokens
 
         # TODO: review config.json with model folder:
         # https://huggingface.co/docs/transformers/v4.27.2/en/internal/generation_utils#transformers.TemperatureLogitsWarper
 
-        self.tokenizer = AutoTokenizer.from_pretrained(Path(f"{model_path}/"))
-        self.tokenizer.truncation_side = "left"
-        self.model = AutoModelForCausalLM.from_pretrained(
+        cls.tokenizer = AutoTokenizer.from_pretrained(Path(f"{model_path}/"))
+        cls.tokenizer.truncation_side = "left"
+        cls.model = AutoModelForCausalLM.from_pretrained(
             Path(model_path),
             device_map="auto",
             quantization_config=BitsAndBytesConfig(load_in_8bit=True),
@@ -53,14 +79,22 @@ class MyLangchainAgentHandler:
         # model = model.cuda()
         pipe = pipeline(
             "text-generation",
-            model=self.model,
-            tokenizer=self.tokenizer,
-            max_new_tokens=self.max_new_tokens,
+            model=cls.model,
+            tokenizer=cls.tokenizer,
+            max_new_tokens=cls.max_new_tokens,
         )
-        self.hf = HuggingFacePipeline(pipeline=pipe)
-        return (self.hf, self.model, self.tokenizer)
+        cls.hf = HuggingFacePipeline(pipeline=pipe)
+        cls.model_loaded = True
+        return (cls.hf, cls.model, cls.tokenizer)
 
-    def load_embedding(self):
+    @classmethod
+    def get_hf_embedding(cls):
+        if cls.embedding == None:
+            return cls.load_hf_embedding()
+        return cls.embedding
+
+    @classmethod
+    def load_hf_embedding(cls):
         """load default embedding used
 
         Returns:
@@ -68,22 +102,61 @@ class MyLangchainAgentHandler:
         """
 
         # using the default embedding model from hf
-        self.embedding = HuggingFaceEmbeddings(
+        cls.embedding = HuggingFaceEmbeddings(
             model_name="sentence-transformers/all-mpnet-base-v2"
         )
-        return self.embedding
+        return cls.embedding
 
 
-if __name__ == "main":
+if __name__ == "__main__":
 
-    # # test embeddings
-    # # text = "This is a test document."
-    # # query_result = embeddings.embed_query(text)
-    # # doc_result = embeddings.embed_documents([text])
-    # # example_embed1 = embeddings.embed_query("This is a very long sentence and the only difference is a period at the end")
-    # # example_embed2 = embeddings.embed_query("This is a very long sentence and the only difference is a period at the end.")
-    # # from scipy.spatial import distance
-    # # print(f"{distance.euclidean(example_embed1, example_embed2)}")
+    # test embeddings
+    testAgent = MyLangchainAgentHandler()
+    embedding = testAgent.load_hf_embedding()
+    text1 = (
+        "This is a very long sentence and the only difference is a period at the end"
+    )
+    text2 = (
+        "This is a very long sentence and the only difference is a period at the end."
+    )
+    query_result1 = embedding.embed_query(text1)
+    print(f"text1 result:\n{str(query_result1[0:5]).replace(']','...')}")
+    query_result2 = embedding.embed_query(text2)
+    print(f"text2 result:\n{str(query_result2[0:5]).replace(']','...')}")
+
+    print(
+        f"text1 and text2 distance: {distance.euclidean(query_result1, query_result2)}"
+    )
+    doc_result = embedding.embed_documents([text1, text2])
+    print(f"text1 within doc:\n{str(doc_result[0][0:5]).replace(']','...')}")
+    print(f"text2 within doc:\n{str(doc_result[1][0:5]).replace(']','...')}")
+
+    # load llm
+    hf, model, tokenizer = testAgent.load_llama_llm(
+        model_name="llama-7b", max_new_tokens=50
+    )
+
+    # index documents
+    index_name = "examples"
+    loaded_doc_file = "docs/doc_loaded.json"
+    doc_list = {
+        # INDEX: DOC_PATH
+        "examples": "docs/examples/state_of_the_union.txt",
+        # "docs/arxiv/2302.13971.pdf",
+        # "docs/psych/DSM-5-TR.pdf",
+        # "docs/psych/Synopsis_of_Psychiatry.pdf",
+    }
+    testDocs = MyLangchainDocsHandler(embeddings=embedding, redis_host="192.168.1.236")
+    # index = tester.load_docs_into_redis(
+    #     doc_list=doc_list,
+    #     loaded_doc_file=loaded_doc_file,
+    #     embeddings=embedding,
+    #
+    # )
+    index = testDocs.load_docs_into_chroma(doc_list=doc_list, index_name=index_name)
+    query = "What did the president say about Ketanji Brown Jackson"
+    doc_response = index.query(query, llm=hf)
+    print(f"Query - {query}\nResponse - \n{doc_response}")
 
     # # simple text gen
     # text = "Jim is a helpful business analyst that gives simple, practical answers to questions. \n Bob: What would be a good company name for a company that makes colorful socks? Give me a list of ideas. \n Jim: "
