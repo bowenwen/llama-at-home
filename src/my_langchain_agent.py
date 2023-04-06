@@ -4,6 +4,8 @@ sys.path.append("./")
 
 from pathlib import Path
 from scipy.spatial import distance
+from typing import Any, List, Optional, Type
+
 from langchain.llms import HuggingFacePipeline
 from transformers import (
     # AutoConfig,
@@ -32,7 +34,7 @@ class MyLangchainAgentHandler:
         pass
 
     @classmethod
-    def get_llama_llm(cls):
+    def get_llama_llm(cls) -> Type[HuggingFacePipeline]:
         """get a previously loaded llama, if it was never loaded, return llama-7b with max_new_tokens=50
 
         Returns:
@@ -44,7 +46,9 @@ class MyLangchainAgentHandler:
         return (cls.hf, cls.model, cls.tokenizer)
 
     @classmethod
-    def load_llama_llm(cls, model_name=None, max_new_tokens=50):
+    def load_llama_llm(
+        cls, model_name=None, max_new_tokens=50
+    ) -> Type[HuggingFacePipeline]:
         """quick loader of a local llama model
 
         Args:
@@ -88,13 +92,13 @@ class MyLangchainAgentHandler:
         return (cls.hf, cls.model, cls.tokenizer)
 
     @classmethod
-    def get_hf_embedding(cls):
+    def get_hf_embedding(cls) -> Type[HuggingFaceEmbeddings]:
         if cls.embedding == None:
             return cls.load_hf_embedding()
         return cls.embedding
 
     @classmethod
-    def load_hf_embedding(cls):
+    def load_hf_embedding(cls) -> Type[HuggingFaceEmbeddings]:
         """load default embedding used
 
         Returns:
@@ -138,62 +142,47 @@ if __name__ == "__main__":
 
     # index documents
     index_name = "examples"
-    loaded_doc_file = "docs/doc_loaded.json"
-    doc_list = {
-        # INDEX: DOC_PATH
-        "examples": "docs/examples/state_of_the_union.txt",
+    file_list = [
+        "docs/examples/state_of_the_union.txt",
         # "docs/arxiv/2302.13971.pdf",
         # "docs/psych/DSM-5-TR.pdf",
         # "docs/psych/Synopsis_of_Psychiatry.pdf",
-    }
-    testDocs = MyLangchainDocsHandler(embeddings=embedding, redis_host="192.168.1.236")
-    # index = tester.load_docs_into_redis(
-    #     doc_list=doc_list,
-    #     loaded_doc_file=loaded_doc_file,
-    #     embeddings=embedding,
-    #
-    # )
-    index = testDocs.load_docs_into_chroma(doc_list=doc_list, index_name=index_name)
+    ]
+    testDocs = MyLangchainDocsHandler(embedding=embedding)
+    index = testDocs.load_docs_into_chroma(file_list, index_name)
+    # index = testDocs.load_docs_into_redis(file_list, index_name)
+
+    # using the VectorStoreIndexWrapper to run a chain with question related to the doc
     query = "What did the president say about Ketanji Brown Jackson"
     doc_response = index.query(query, llm=hf)
     print(f"Query - {query}\nResponse - \n{doc_response}")
 
-    # # simple text gen
-    # text = "Jim is a helpful business analyst that gives simple, practical answers to questions. \n Bob: What would be a good company name for a company that makes colorful socks? Give me a list of ideas. \n Jim: "
-    # # text_response = hf(text)
-    # # print(f"{text_response}\n")
-    # # print(f"{'='*10}\n")
-    # # text_response = hf(text)
-    # # print(f"{text_response}\n")
-    # # print(f"{'='*10}\n")
+    # Template for prompt
+    from langchain.chains import ConversationChain
+    from langchain.memory import (
+        ConversationSummaryBufferMemory,
+        ConversationBufferMemory,
+    )
+    from langchain.prompts.prompt import PromptTemplate
+    from src.my_langchain_agent import MyLangchainAgentHandler
 
-    # # query = "What did the president say about Ketanji Brown Jackson"
-    # # docs = db.similarity_search(query)
+    template = """Bob and a cat are having a friendly conversation.
 
-    # # ask some questions about the documents
-    # query = "What did the president say about Ketanji Brown Jackson"
-    # doc_response = index.query(query, llm=hf)
-    # print(f"Query - {query}\nResponse - \n{doc_response}")
+    Current conversation:
+    {history}
+    Bob: {input}
+    Cat:"""
+    PROMPT = PromptTemplate(input_variables=["history", "input"], template=template)
 
-    # query = "What are some diagnostic features of substance use disorders?"
-    # doc_response = index.query(query, llm=hf)
-    # print(f"Query - {query}\nResponse - \n{doc_response}")
+    # Conversation chain
+    conversation = ConversationChain(
+        prompt=PROMPT,
+        llm=hf,
+        verbose=True,
+        memory=ConversationSummaryBufferMemory(llm=hf, max_token_limit=20),
+    )
 
-    # query = "What data sources are used by llama?"
-    # doc_response = index.query(query, llm=hf)
-    # print(f"Query - {query}\nResponse - \n{doc_response}")
+    conversation.predict(input="Hi there!")
 
-    # query = "What method did llama use to tokenize its data?"
-    # doc_response = index.query(query, llm=hf)
-    # print(f"Query - {query}\nResponse - \n{doc_response}")
-
-    # # index.query_with_sources(query)
-
-    # # from langchain.chains.question_answering import load_qa_chain
-
-    # # chain = load_qa_chain(hf, chain_type="stuff")
-    # # chain.run(input_documents=docs, question=query)
-
-    # # text_splitter = CharacterTextSplitter.from_huggingface_tokenizer(tokenizer, chunk_size=100, chunk_overlap=0)
-    # # texts = text_splitter.split_text(state_of_the_union)
-    pass
+    # from langchain.llms import LlamaCppEmbeddings
+    # llm = LlamaCppEmbeddings(model_path="/path/to/llama/model")
