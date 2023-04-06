@@ -1,19 +1,24 @@
 import os
 import json
-
-from langchain.embeddings import HuggingFaceEmbeddings
+from typing import Any, List, Optional, Type
 
 from langchain.document_loaders import TextLoader
 from langchain.document_loaders import UnstructuredPDFLoader
 
-from langchain.vectorstores import Chroma
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.indexes.vectorstore import VectorStoreIndexWrapper
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.chains import RetrievalQA
-
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.vectorstores.base import VectorStore
+from langchain.vectorstores.chroma import Chroma
 from langchain.vectorstores.redis import Redis
+from langchain.indexes.vectorstore import VectorStoreIndexWrapper
+
+from langchain.text_splitter import (
+    CharacterTextSplitter,
+    RecursiveCharacterTextSplitter,
+    TextSplitter,
+)
+
+
+def _get_default_text_splitter() -> TextSplitter:
+    return RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 
 
 class MyLangchainDocsHandler:
@@ -23,104 +28,145 @@ class MyLangchainDocsHandler:
     CHROMA_DIR = "./.chroma"
     DOC_DIR = "./docs"
 
-    def __init__(self, embeddings, redis_host=None):
-        self.embeddings = embeddings
+    def __init__(self, embedding, redis_host=None):
+        self.embedding = embedding
         if redis_host == None:
             redis_host = self.DEFAULT_DOMAIN
         self.redis_host = redis_host
+        # db is the current doc database
+        self.db = None
+        self.text_splitter = _get_default_text_splitter()
 
     def index_from_redis(self, index_name):
-        rds = Redis.from_existing_index(
-            self.embeddings,
+
+        self.db = Redis.from_existing_index(
+            self.embedding,
             redis_url=f"redis://{self.redis_host}:6379",
             index_name=index_name,
         )
-        return rds
+        return VectorStoreIndexWrapper(vectorstore=self.db)
 
-    def load_docs_into_redis(self, doc_list, index_name):
+    def load_docs_into_redis(self, file_list, index_name):
 
-        # https://python.langchain.com/en/latest/modules/indexes/vectorstores/examples/redis.html
-
-        loader = TextLoader("../../../state_of_the_union.txt")
-        documents = loader.load()
-        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-        docs = text_splitter.split_documents(documents)
-
-        rds = Redis.from_documents(
-            docs,
-            self.embeddings,
-            redis_url=f"redis://{self.redis_host}:6379",
-            index_name=index_name,
+        # only load files that do not already exist, otherwise, load from existing index
+        filtered_file_list = self.filter_file_list(file_list, index_name, "Redis")
+        if len(filtered_file_list) == 0:
+            return self.index_from_redis(index_name)
+        # load new docs into index
+        vectorstore_kwargs = {"redis_url": f"redis://{self.redis_host}:6379"}
+        self.db = self.build_vectorstore_from_loaders(
+            loader_list=self.build_loader_list(file_list=filtered_file_list),
+            vectorstore_cls=Redis,
+            vectorstore_kwargs=vectorstore_kwargs,
         )
-        # rds.index_name
-        query = "What did the president say about Ketanji Brown Jackson"
-        results = rds.similarity_search(query)
-        print(results[0].page_content)
+        return VectorStoreIndexWrapper(vectorstore=self.db)
 
-    def load_docs_into_chroma(self, doc_list, index_name):
+    def index_from_chroma(self, index_name):
+        vectorstore_kwargs = {"persist_directory": f"{self.CHROMA_DIR}/{index_name}"}
+        self.db = Chroma(
+            embedding_function=self.embedding,
+            **vectorstore_kwargs,
+        )
+        return VectorStoreIndexWrapper(vectorstore=self.db)
 
-        filtered_doc_list = self.filter_doc_list(doc_list, index_name)
+    def load_docs_into_chroma(self, file_list, index_name):
+
+        # only load files that do not already exist, otherwise, load from existing index
+        filtered_file_list = self.filter_file_list(file_list, index_name, "Chroma")
+        if len(filtered_file_list) == 0:
+            return self.index_from_chroma(index_name)
+
+        # load new docs into index
+        vectorstore_kwargs = {"persist_directory": f"{self.CHROMA_DIR}/{index_name}"}
+        self.db = self.build_vectorstore_from_loaders(
+            loader_list=self.build_loader_list(file_list=filtered_file_list),
+            vectorstore_cls=Chroma,
+            vectorstore_kwargs=vectorstore_kwargs,
+        )
+        self.db.persist()
+        return VectorStoreIndexWrapper(vectorstore=self.db)
+
+    def build_vectorstore_from_loaders(
+        self,
+        loader_list: list,
+        vectorstore_cls: Type[VectorStore],
+        vectorstore_kwargs: dict = None,
+    ) -> Type[VectorStore]:
+        """building vectorstore db object from a list of document loaders
+
+        Args:
+            loader_list (list): document loaders
+            vectorstore_cls (Type[VectorStore]): vector store objects
+            vectorstore_kwargs (dict, optional): extra arguments for vectorstores. Defaults to {}.
+
+        Returns:
+            Type[VectorStore]: vectorstore object
+        """
+        docs = []
+        for loader in loader_list:
+            docs.extend(loader.load())
+        sub_docs = self.text_splitter.split_documents(docs)
+        if vectorstore_kwargs is None:
+            vectorstore = vectorstore_cls.from_documents(sub_docs, self.embedding)
+        else:
+            vectorstore = vectorstore_cls.from_documents(
+                sub_docs, self.embedding, **vectorstore_kwargs
+            )
+        return vectorstore
+
+    def build_loader_list(self, file_list: list[str]) -> list[object]:
+        """build a list of loaders based on document types
+
+        Args:
+            file_list (list[str]): list of paths to documents
+
+        Returns:
+            list[object]: list of loaders
+        """
 
         # load documents by type
         loader_list = []
-        for doc in filtered_doc_list:
-            file_type = doc.split("/")[-1].split(".")[-1]
+        for file_path in file_list:
+            file_type = file_path.split("/")[-1].split(".")[-1]
             if file_type == "txt":
-                loader_list.append(TextLoader(doc))
+                loader_list.append(TextLoader(file_path))
             elif file_type == "pdf":
-                loader_list.append(UnstructuredPDFLoader(doc))
+                loader_list.append(UnstructuredPDFLoader(file_path))
+        return loader_list
 
-        vectorstore_kwargs = {"persist_directory": f"{self.CHROMA_DIR}/{index_name}"}
+    def filter_file_list(
+        self, file_list: list[str], index_name: str, db_type: str
+    ) -> list[str]:
+        """filter the list of document by removing any documents previously
+        had been indexed and recorded in {index_name}.json files
 
-        index = VectorstoreIndexCreator(
-            embedding=self.embeddings, vectorstore_kwargs=vectorstore_kwargs
-        ).from_loaders(loader_list)
+        TODO: this function currently assumes we are loading all docs into the index once
+        need to add support and test ability to load new docs into previous indices
 
-        return index
+        Args:
+            file_list (list[str]): list of paths to documents
+            index_name (str): name of index
+            db_type (str): name of db type like Chroma or Redis
 
-    def filter_doc_list(self, doc_list, index_name):
-        filtered_doc_list = []
-        for doc in doc_list:
+        Returns:
+            list[str]: list of filtered file list
+        """
+        filtered_file_list = []
+        for file_path in file_list:
             # get json record of docs loaded
-            index_record_file = f"{self.DOC_DIR}/{index_name}.json"
+            index_record_file = f"{self.DOC_DIR}/db_{db_type}_{index_name}.json"
             if os.path.exists(index_record_file):
-                with open(index_record_file, "r") as jfile:
-                    filtered_doc_list = json.loads(jfile.read())
+                with open(index_record_file, "r", encoding="utf-8") as infile:
+                    filtered_file_list = json.loads(infile.read())
             else:
-                filtered_doc_list = []
+                filtered_file_list = []
             # check if doc has already been loaded, if so, skip
-            if doc in filtered_doc_list:
-                print(f"skipping {doc}")
+            if file_path in filtered_file_list:
+                print(f"skipping {file_path}")
             else:
                 # save json record of docs loaded
-                print(f"loaded {doc}")
-                filtered_doc_list.append(doc)
-                with open(index_record_file, "w") as outfile:
-                    json.dump(filtered_doc_list, outfile)
-        return filtered_doc_list
-
-
-if __name__ == "__main__":
-
-    # # index documents
-    # index_name = "docs/doc_loaded.json"
-    # doc_list = [
-    #     "docs/examples/state_of_the_union.txt",
-    #     "docs/arxiv/2302.13971.pdf",
-    #     # "docs/psych/DSM-5-TR.pdf",
-    #     # "docs/psych/Synopsis_of_Psychiatry.pdf",
-    # ]
-    # tester = MyLangchainDocsHandler(embeddings=embedding, redis_host="192.168.1.236")
-    # # index = tester.load_docs_into_redis(
-    # #     doc_list=doc_list,
-    # #     index_name=index_name,
-    # #     embeddings=embedding,
-    # #
-    # # )
-    # index = tester.load_docs_into_chroma(
-    #     doc_list=doc_list, index_name=index_name
-    # )
-    # query = "What did the president say about Ketanji Brown Jackson"
-    # doc_response = index.query(query, llm=hf)
-    # print(f"Query - {query}\nResponse - \n{doc_response}")
-    pass
+                print(f"loaded {file_path}")
+                filtered_file_list.append(file_path)
+                with open(index_record_file, "w", encoding="utf-8") as outfile:
+                    json.dump(filtered_file_list, outfile)
+        return filtered_file_list
