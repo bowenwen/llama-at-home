@@ -2,37 +2,16 @@
 
 ## Getting Started
 
-### 1. Install packages for textgen webui and langchain
+### 1. Install packages for text-generation-webui and langchain
 
 Following instruction from [text-generation-webui](https://github.com/oobabooga/text-generation-webui#manual-installation-using-conda):
 
+For additional package installation, see `environments/langchain.sh`
+
+Not interested in getting the latest development version? Install versions from `environments/langchain.yml`
+
 ```bash
-conda remove --name textgen --all
-conda create -n -y textgen python=3.10.9
-conda activate textgen
-conda install -y pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
-# get text gen webui
-git clone https://github.com/oobabooga/text-generation-webui
-cd text-generation-webui
-pip install -r requirements.txt
-# install dev version of transformers
-#pip install git+https://github.com/huggingface/transformers --force-reinstall
-cd ../packages/transformers
-pip install cmake lit
-pip install . --force-reinstall
-# install dev version of langchain
-cd ../../packages/langchain
-conda activate texgen
-pip install . --force-reinstall
-# install additional packages used by langchain
-pip install sentence_transformers
-pip install chromadb
-pip install redis
-pip install unstructured
-pip install unstructured[local-inference]
-pip install 'git+https://github.com/facebookresearch/detectron2.git'
-conda install poppler
-conda install pytesseract
+conda env create -f ./environments/langchain.yml
 ```
 
 ### 2. Obtain weights
@@ -49,6 +28,8 @@ request the [original facebook weights](https://github.com/facebookresearch/llam
 
 ```bash
 # Get latest PR on weight conversion with llamba from https://github.com/huggingface/transformers
+cd packages
+mkdir tmp_transformer
 git clone -b llama_push https://github.com/zphang/transformers.git
 cd transformers
 # convert 7B model
@@ -63,19 +44,10 @@ cd ..
 
 ##### Step 2: set up for quantized 4bit weights
 
-Quantize to 4bit, read more: https://github.com/oobabooga/text-generation-webui/wiki/LLaMA-model#4-bit-mode
-https://github.com/qwopqwop200/GPTQ-for-LLaMa
+Quantize to 4bit, read more here: https://github.com/oobabooga/text-generation-webui/wiki/LLaMA-model#4-bit-mode
+https://github.com/qwopqwop200/GPTQ-for-LLaMa.
 
-```bash
-conda activate texgen
-mkdir repositories
-cd repositories
-git clone https://github.com/qwopqwop200/GPTQ-for-LLaMa
-cd GPTQ-for-LLaMa
-git pull
-git checkout cuda
-python setup_cuda.py install
-```
+For the most part, it's easier to download the 4-bit weights, but you can also follow Step 3 to convert it yourself.
 
 ##### Step 3: convert the llama model to HF and 4 bits
 
@@ -175,9 +147,11 @@ git clone https://huggingface.co/cerebras/Cerebras-GPT-6.7B
 git clone https://huggingface.co/cerebras/Cerebras-GPT-13B
 ```
 
-# TODO
+# Notes
 
-conda env export > environment.yml
+```
+conda env export --no-builds > ./environments/langchain.yml
+```
 
 ## Resources
 * make it work with UI: https://rentry.org/llama-tard-v2
