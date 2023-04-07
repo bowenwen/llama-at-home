@@ -1,6 +1,6 @@
 # LLaMa at Home
 
-## Getting Started
+## Model and environment setup
 
 ### 1. Install packages for text-generation-webui and langchain
 
@@ -64,10 +64,44 @@ ln -s ~/projects/llama-at-home/models ~/projects/llama-at-home/tools/text-genera
 ln -s ~/projects/llama-at-home/loras ~/projects/llama-at-home/tools/text-generation-webui/loras
 ```
 
-### 3. Start the UI
+### 3. Fine tuning your model
 
 ```bash
-conda activate textgen
+python finetune.py \
+    --base_model 'decapoda-research/llama-7b-hf' \
+    --data_path 'yahma/alpaca-cleaned' \
+    --output_dir './lora-alpaca'
+```
+
+Examples of other people's fine tuning results
+* https://huggingface.co/Draff/llama-alpaca-stuff/tree/main/Alpaca-Loras
+* https://huggingface.co/samwit/alpaca13B-lora
+* https://huggingface.co/chansung/alpaca-lora-30b
+
+### Other models
+
+#### Trying out Cerebras-GPT
+
+* Source: https://huggingface.co/cerebras
+
+bash
+```
+cd ~/apps/vscodeserver/appdata/coder/projects/Cerebras-GPT
+git lfs install
+git clone https://huggingface.co/cerebras/Cerebras-GPT-111M
+git clone https://huggingface.co/cerebras/Cerebras-GPT-256M
+git clone https://huggingface.co/cerebras/Cerebras-GPT-590M
+git clone https://huggingface.co/cerebras/Cerebras-GPT-1.3B
+git clone https://huggingface.co/cerebras/Cerebras-GPT-2.7B
+git clone https://huggingface.co/cerebras/Cerebras-GPT-6.7B
+git clone https://huggingface.co/cerebras/Cerebras-GPT-13B
+```
+
+
+## Using text-generation-webui
+
+```bash
+conda activate langchain
 
 # use 8 bits
 python server.py --listen --load-in-8bit --no-stream --model llama-7b
@@ -91,32 +125,7 @@ You may need to update the model name if the downloaded version is slightly diff
 Browse to: `http://localhost:7860/?__theme=dark`
 [help?](https://github.com/oobabooga/text-generation-webui#starting-the-web-ui)
 
-
-### 4. Fine tuning
-
-```
-conda activate textgen
-cd ~/projects/LLaMA
-git clone https://github.com/tloen/alpaca-lora.git
-cd alpaca-lora
-pip install -r requirements.txt
-```
-
-Examples of other people's fine tuning results
-* https://huggingface.co/Draff/llama-alpaca-stuff/tree/main/Alpaca-Loras
-* https://huggingface.co/samwit/alpaca13B-lora
-* https://huggingface.co/chansung/alpaca-lora-30b
-
-
-### 5. Build your own server for LLaMa Chat!
-
-To be completed...
-
-```bash
-
-```
-
-## Working with LangChain
+## Using LangChain
 
 Set up documents
 
@@ -129,23 +138,6 @@ Some reading materials on Langchain
 * https://huggingface.co/blog/hf-bitsandbytes-integration
 * https://huggingface.co/docs/transformers/v4.13.0/en/performance
 
-
-## Trying out Cerebras-GPT
-
-* Source: https://huggingface.co/cerebras
-
-bash
-```
-cd ~/apps/vscodeserver/appdata/coder/projects/Cerebras-GPT
-git lfs install
-git clone https://huggingface.co/cerebras/Cerebras-GPT-111M
-git clone https://huggingface.co/cerebras/Cerebras-GPT-256M
-git clone https://huggingface.co/cerebras/Cerebras-GPT-590M
-git clone https://huggingface.co/cerebras/Cerebras-GPT-1.3B
-git clone https://huggingface.co/cerebras/Cerebras-GPT-2.7B
-git clone https://huggingface.co/cerebras/Cerebras-GPT-6.7B
-git clone https://huggingface.co/cerebras/Cerebras-GPT-13B
-```
 
 # Notes
 
