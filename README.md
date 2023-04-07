@@ -86,11 +86,9 @@ python convert_llama_weights_to_hf.py --input_dir path_to_model/downloads --mode
 python convert_llama_weights_to_hf.py --input_dir path_to_model/downloads --model_size 65B --output_dir ../../models_converted
 ```
 
-The models need to be placed in the `models/` folder within text-generation-webui.
-
-Linking the model folder so it can be accessed by multiple apps:
+The models need to be placed in the `models/` folder, and symbolic linked for text-generation-webui. For example:
 ```bash
-ln -s ./text-generation-webui/models/ ./models
+ln -s ./models ./tools/text-generation-webui/models/ 
 ```
 
 ### 4. Start the UI
