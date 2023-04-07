@@ -26,7 +26,7 @@ class MyLangchainDocsHandler:
 
     DEFAULT_DOMAIN = "localhost"
     CHROMA_DIR = "./.chroma"
-    DOC_DIR = "./docs"
+    DOC_DIR = "./index-docs"
 
     def __init__(self, embedding, redis_host=None):
         self.embedding = embedding

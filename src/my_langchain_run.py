@@ -28,10 +28,10 @@ hf, model, tokenizer = testAgent.load_llama_llm(
 # index_name = "arxiv"
 index_name = "psych"
 file_list = [
-    # "docs/examples/state_of_the_union.txt",
-    # "docs/arxiv/2302.13971.pdf",
-    "docs/psych/DSM-5-TR.pdf",
-    "docs/psych/Synopsis_of_Psychiatry.pdf",
+    # "index-docs/examples/state_of_the_union.txt",
+    # "index-docs/arxiv/2302.13971.pdf",
+    "index-docs/psych/DSM-5-TR.pdf",
+    "index-docs/psych/Synopsis_of_Psychiatry.pdf",
 ]
 testDocs = MyLangchainDocsHandler(embedding=embedding, redis_host="192.168.1.236")
 # index = testDocs.load_docs_into_chroma(file_list, index_name)
