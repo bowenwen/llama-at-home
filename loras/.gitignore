@@ -1,0 +1,5 @@
+*.txt
+.gitattributes
+*.json
+*.bin
+*.md

@@ -35,7 +35,7 @@ conda install poppler
 conda install pytesseract
 ```
 
-### 3. Obtain weights
+### 2. Obtain weights
 
 #### Option 1: Download weights
 
@@ -88,10 +88,11 @@ python convert_llama_weights_to_hf.py --input_dir path_to_model/downloads --mode
 
 The models need to be placed in the `models/` folder, and symbolic linked for text-generation-webui. For example:
 ```bash
-ln -s ./models ./tools/text-generation-webui/models/ 
+ln -s ~/projects/llama-at-home/models ~/projects/llama-at-home/tools/text-generation-webui/models
+ln -s ~/projects/llama-at-home/loras ~/projects/llama-at-home/tools/text-generation-webui/loras
 ```
 
-### 4. Start the UI
+### 3. Start the UI
 
 ```bash
 conda activate textgen
@@ -119,7 +120,7 @@ Browse to: `http://localhost:7860/?__theme=dark`
 [help?](https://github.com/oobabooga/text-generation-webui#starting-the-web-ui)
 
 
-### 5. Fine tuning
+### 4. Fine tuning
 
 ```
 conda activate textgen
@@ -135,7 +136,7 @@ Examples of other people's fine tuning results
 * https://huggingface.co/chansung/alpaca-lora-30b
 
 
-### 6. Build your own server for LLaMa Chat!
+### 5. Build your own server for LLaMa Chat!
 
 To be completed...
 
@@ -173,6 +174,10 @@ git clone https://huggingface.co/cerebras/Cerebras-GPT-2.7B
 git clone https://huggingface.co/cerebras/Cerebras-GPT-6.7B
 git clone https://huggingface.co/cerebras/Cerebras-GPT-13B
 ```
+
+# TODO
+
+conda env export > environment.yml
 
 ## Resources
 * make it work with UI: https://rentry.org/llama-tard-v2

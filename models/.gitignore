@@ -1,0 +1,6 @@
+*.json
+*.safetensors
+*.bin
+*.model
+*.txt
+*.log
