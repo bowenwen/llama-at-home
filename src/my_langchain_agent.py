@@ -1,35 +1,54 @@
-import sys
-
-sys.path.append("./")
-
-from pathlib import Path
 from typing import Any, List, Optional, Type
 
+# import torch
+
+from pathlib import Path
+from peft import PeftModel
 from langchain.llms import HuggingFacePipeline
 from transformers import (
     # AutoConfig,
-    AutoModelForCausalLM,
-    AutoTokenizer,
+    # AutoModelForCausalLM,
+    # AutoTokenizer,
+    LlamaForCausalLM,
+    LlamaTokenizer,
     BitsAndBytesConfig,
     pipeline,
 )
 from langchain.embeddings import HuggingFaceEmbeddings
+
+import sys
+
+sys.path.append("./")
 
 
 class MyLangchainAgentHandler:
     """a wrapper to make creating a langchain agent easier"""
 
     model_name = None
+    lora_name = None
     max_new_tokens = None
     model = None
     tokenizer = None
     embedding = None
     hf = None
     model_loaded = False
+    DIR_MODELS = "models"
+    DIR_LORAS = "loras"
 
-    def __init__(self) -> None:
+    def __init__(self, lora_name="") -> None:
         """init function"""
-        pass
+        if lora_name not in [None, "None", ""]:
+            self.lora_name = lora_name
+
+    @classmethod
+    def add_lora_to_model(cls, lora_name):
+        lora_path = f"{cls.DIR_LORAS}/{lora_name}"
+        params = {}
+        # params["dtype"] = torch.float16
+        params["device_map"] = {"": 0}
+        cls.model = PeftModel.from_pretrained(
+            cls.model, Path(f"{lora_path}/"), **params
+        )
 
     @classmethod
     def get_llama_llm(cls) -> Type[HuggingFacePipeline]:
@@ -65,20 +84,28 @@ class MyLangchainAgentHandler:
         else:
             cls.model_name = model_name
 
-        model_path = f"models/{cls.model_name}"
+        model_path = f"{cls.DIR_MODELS}/{cls.model_name}"
         cls.max_new_tokens = max_new_tokens
 
         # TODO: review config.json with model folder:
         # https://huggingface.co/docs/transformers/v4.27.2/en/internal/generation_utils#transformers.TemperatureLogitsWarper
 
-        cls.tokenizer = AutoTokenizer.from_pretrained(Path(f"{model_path}/"))
-        cls.tokenizer.truncation_side = "left"
-        cls.model = AutoModelForCausalLM.from_pretrained(
+        # cls.tokenizer = AutoTokenizer.from_pretrained(Path(f"{model_path}/"))
+        # cls.tokenizer.truncation_side = "left"
+        # cls.model = AutoModelForCausalLM.from_pretrained(
+        #     Path(model_path),
+        #     device_map="auto",
+        #     quantization_config=BitsAndBytesConfig(load_in_8bit=True),
+        # )
+        cls.tokenizer = LlamaTokenizer.from_pretrained(Path(f"{model_path}/"))
+        cls.model = LlamaForCausalLM.from_pretrained(
             Path(model_path),
             device_map="auto",
             quantization_config=BitsAndBytesConfig(load_in_8bit=True),
         )
         # model = model.cuda()
+        if cls.lora_name not in [None, "None", ""]:
+            cls.model = cls.add_lora_to_model(lora_name=cls.lora_name)
         pipe = pipeline(
             "text-generation",
             model=cls.model,

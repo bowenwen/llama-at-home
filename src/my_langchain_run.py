@@ -1,15 +1,24 @@
 import sys
+import os
+import warnings
 
 sys.path.append("./")
-
 from scipy.spatial import distance
-
 from src.my_langchain_agent import MyLangchainAgentHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
 
-# test embeddings
-testAgent = MyLangchainAgentHandler()
+# suppress warnings for demo
+warnings.filterwarnings("ignore")
+os.environ["PYDEVD_INTERRUPT_THREAD_TIMEOUT"] = "60"
+
+
+# select model and lora
+model_name = "llama-7b"
+lora_name = "alpaca-lora-7b"
+
+testAgent = MyLangchainAgentHandler(lora_name=lora_name)
 embedding = testAgent.load_hf_embedding()
+
 text1 = "This is a very long sentence and the only difference is a period at the end"
 text2 = "This is a very long sentence and the only difference is a period at the end."
 query_result1 = embedding.embed_query(text1)
@@ -21,7 +30,7 @@ print(f"text2 within doc:\n{str(doc_result[1][0:5]).replace(']','...')}")
 
 # load llm
 hf, model, tokenizer = testAgent.load_llama_llm(
-    model_name="llama-7b", max_new_tokens=50
+    model_name=model_name, max_new_tokens=50
 )
 
 # index documents
@@ -36,7 +45,7 @@ file_list_master = {
 file_list = file_list_master[index_name]
 
 testDocs = MyLangchainDocsHandler(embedding=embedding, redis_host="192.168.1.236")
-# index = testDocs.load_docs_into_chroma(file_list, index_name)
+index = testDocs.load_docs_into_chroma(file_list, index_name)
 index = testDocs.load_docs_into_redis(file_list, index_name)
 
 # using the VectorStoreIndexWrapper to run a chain with question related to the doc
