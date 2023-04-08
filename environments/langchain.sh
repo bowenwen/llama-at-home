@@ -37,3 +37,7 @@ pip install redis
 pip install unstructured
 pip install unstructured[local-inference]
 pip install 'git+https://github.com/facebookresearch/detectron2.git'
+# 20230407 patch, download problematic packages
+pip install protobuf==3.19.5 --force-reinstall
+pip install tensorboard==2.8.0 --force-reinstall
+pip install argilla==1.4 --force-reinstall
