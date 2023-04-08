@@ -4,3 +4,5 @@
 *.model
 *.txt
 *.log
+*.chk
+*.pth
