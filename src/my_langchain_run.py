@@ -16,7 +16,7 @@ os.environ["PYDEVD_INTERRUPT_THREAD_TIMEOUT"] = "60"
 model_name = "llama-7b"
 lora_name = "alpaca-lora-7b"
 
-testAgent = MyLangchainAgentHandler(lora_name=lora_name)
+testAgent = MyLangchainAgentHandler()
 embedding = testAgent.load_hf_embedding()
 
 text1 = "This is a very long sentence and the only difference is a period at the end"
@@ -30,7 +30,7 @@ print(f"text2 within doc:\n{str(doc_result[1][0:5]).replace(']','...')}")
 
 # load llm
 hf, model, tokenizer = testAgent.load_llama_llm(
-    model_name=model_name, max_new_tokens=50
+    model_name=model_name, lora_name=lora_name, max_new_tokens=50
 )
 
 # index documents
