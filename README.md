@@ -22,6 +22,7 @@ Before you start, any downloaded or converted models need to be placed in the `m
 ```bash
 ln -s ~/projects/llama-at-home/models ~/projects/llama-at-home/tools/text-generation-webui/models
 ln -s ~/projects/llama-at-home/loras ~/projects/llama-at-home/tools/text-generation-webui/loras
+ln -s ~/projects/llama-at-home/tools/GPTQ-for-LLaMa ~/projects/llama-at-home/tools/text-generation-webui/repositories/GPTQ-for-LLaMa
 ```
 
 #### Option 1: Download weights
@@ -55,7 +56,7 @@ cd ../..
 To conv ert Quantize to 4bit, read more here: https://github.com/oobabooga/text-generation-webui/wiki/LLaMA-model#4-bit-mode
 https://github.com/qwopqwop200/GPTQ-for-LLaMa.
 
-For the most part, it's easier to download the 4-bit weights, but you can also follow Step 3 to convert it yourself.
+For the most part, it is easier to download the 4-bit weights, but you can also follow Step 3 to convert it yourself.
 
 ### 3. Fine tuning your model
 
@@ -66,12 +67,13 @@ Train lora for llama-7b:
 ```bash
 cd tools/alpaca-lora
 python finetune.py \
-    --base_model='../../models/llama-7b' \
+    --base_model="../../models/llama-7b" \
+    --data_path="alpaca_data_gpt4.json" \
     --num_epochs=10 \
     --cutoff_len=512 \
     --group_by_length \
-    --output_dir='../../loras/alpaca-lora-7b' \
-    --lora_target_modules='[q_proj,k_proj,v_proj,o_proj]' \
+    --output_dir="../../loras/alpaca-lora-7b" \
+    --lora_target_modules="[q_proj,k_proj,v_proj,o_proj]" \
     --lora_r=16 \
     --micro_batch_size=8
 cd ../..
@@ -94,12 +96,48 @@ python finetune.py \
 cd ../..
 ```
 
-Examples of other people's fine tuning results, as with the converted weights, downloaded loras may not work with the latest versions of various packages:
+Examples of other fine tuning results, as with the converted weights, downloaded loras may not work with the latest versions of various packages:
 * https://github.com/tloen/alpaca-lora#resources
 * https://huggingface.co/tloen/alpaca-lora-7b
 * https://huggingface.co/chansung/alpaca-lora-13b
 * https://huggingface.co/chansung/alpaca-lora-30b
 * https://huggingface.co/chansung/alpaca-lora-65b
+
+### 4. Configuring model parameters for alpaca lora
+
+Commonly, HuggingFace models will come with a `config.json` which you can use to add your own configurations, some common parameters are shown before. See [HuggingFace Documentation] for more.
+
+```json
+{
+  "do_sample": 1,
+  "temperature": 0.7,
+  "top_p": 0.1,
+  "typical_p": 1,
+  "repetition_penalty": 1.18,
+  "encoder_repetition_penalty": 1,
+  "top_k": 40,
+  "num_beams": 1,
+  "penalty_alpha": 0,
+  "min_length": 0,
+  "length_penalty": 1,
+  "no_repeat_ngram_size": 0,
+  "early_stopping": 0,
+}
+```
+
+* https://huggingface.co/blog/how-to-generate
+* https://docs.cohere.ai/docs/controlling-generation-with-top-k-top-p
+
+### 5. Finetuning 4-bit models
+
+The process for finetuning 4-bit models is slight more complicated and require patching of some existing models. See [johnsmith0031/alpaca_lora_4bit](https://github.com/johnsmith0031/alpaca_lora_4bit) for more information. Note that with this set up, you may not be able to use 8 bit lora properly within reinstalling official version of peft and GPTQ-for-LLaMa.
+
+### Installation
+
+```
+cd tools/alpaca_lora_4bit
+pip install -r requirements.txt
+```
 
 ### Other models
 
@@ -132,11 +170,12 @@ python server.py --listen --load-in-8bit --no-stream --model llama-13b
 
 # Or, use 4 bits
 python server.py --listen --model llama-7b-4bit-128g --wbits 4 --groupsize 128 --no-stream --chat
-python server.py --listen --model llama-13b-4bit-128g --wbits 4 --groupsize 128 -chat
+python server.py --listen --model llama-13b-4bit-128g --wbits 4 --groupsize 128 --chat
+python server.py --listen --model llama-30b-4bit-128g --wbits 4 --groupsize 128 --chat
 
 # Running with LoRA
-python server.py --listen --model llama-7b  --lora alpaca-lora-7b  --load-in-8bit
-python server.py --load-in-8bit --no-stream --model llama-13b --lora alpaca13B-lora --listen
+python server.py --listen --model llama-7b --lora alpaca-lora-7b --load-in-8bit
+python server.py --listen --model llama-13b --lora alpaca-lora-13b --load-in-8bit
 
 # Starting API (same with regular but no chat), api at `http://{server}:7860/api/textgen`
 python server.py --listen --listen-port 7860 --load-in-8bit --no-stream --model llama-7b
