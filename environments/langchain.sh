@@ -22,11 +22,11 @@ cd ../..
 # install dev version of transformers
 cd packages/transformers
 pip install cmake lit
-pip install . --force-reinstall
+pip install --editable . --force-reinstall
 cd ../..
 # install dev version of langchain
 cd packages/langchain
-pip install . --force-reinstall
+pip install --editable . --force-reinstall
 cd ../..
 # install additional packages used by langchain
 conda install -y poppler
@@ -40,4 +40,4 @@ pip install 'git+https://github.com/facebookresearch/detectron2.git'
 # 20230407 patch, download problematic packages
 pip install protobuf==3.19.5 --force-reinstall
 pip install tensorboard==2.8.0 --force-reinstall
-pip install argilla==1.4 --force-reinstall
+pip install argilla==1.5 --force-reinstall
