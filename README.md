@@ -84,12 +84,13 @@ Train lora for llama-13b:
 ```bash
 cd tools/alpaca-lora
 python finetune.py \
-    --base_model='../../models/llama-13b' \
+    --base_model="../../models/llama-13b" \
+    --data_path="alpaca_data_gpt4.json" \
     --num_epochs=10 \
     --cutoff_len=512 \
     --group_by_length \
-    --output_dir='../../loras/alpaca-lora-13b' \
-    --lora_target_modules='[q_proj,k_proj,v_proj,o_proj]' \
+    --output_dir="../../loras/alpaca-lora-13b" \
+    --lora_target_modules="[q_proj,k_proj,v_proj,o_proj]" \
     --lora_r=16 \
     --batch_size=128  \
     --micro_batch_size=4
