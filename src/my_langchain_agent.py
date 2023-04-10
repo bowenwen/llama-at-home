@@ -14,14 +14,16 @@ from transformers import (
     BitsAndBytesConfig,
     pipeline,
 )
+import torch
 from tokenizers import AddedToken
 from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.callbacks import BaseCallbackHandler
 
 import sys
 
 sys.path.append("./")
 
-from langchain.callbacks import BaseCallbackHandler
+from src.GPTQ_loader import load_quantized
 
 
 class MyLangchainAgentHandler:
@@ -34,6 +36,7 @@ class MyLangchainAgentHandler:
     tokenizer = None
     embedding = None
     hf = None
+    device = None
     model_loaded = False
     DIR_MODELS = "models"
     DIR_LORAS = "loras"
@@ -96,6 +99,28 @@ class MyLangchainAgentHandler:
             #             cls.model = cls.model.cuda()
 
     @classmethod
+    def load_gptq_quantized(cls, model_name: str):
+        """a simplified version of loading gptq model for llama with 4 bits
+        originally from https://github.com/oobabooga/text-generation-webui
+
+        Args:
+            model_name (str): name of the model
+
+        Returns:
+            AutoModelForCausalLM: model with adjustments made for 4 bit quantization
+        """
+        # prepare parameters
+        kwargs_quant = {
+            "wbits": 4,
+            "groupsize": 128,
+            "pre_layer": 0,  # number of layers to gpu, enables cpu offloading
+        }
+        # load model
+        cls.model = load_quantized(model_name, **kwargs_quant)
+        # torch.device("cuda:0")
+        return cls.model
+
+    @classmethod
     def get_llama_llm(cls) -> Type[HuggingFacePipeline]:
         """get a previously loaded llama, if it was never loaded, return llama-7b with max_new_tokens=50
 
@@ -138,14 +163,24 @@ class MyLangchainAgentHandler:
 
         # load model
         if "llama" in cls.model_name.lower():
-            cls.model = LlamaForCausalLM.from_pretrained(
-                Path(model_path),
-                # low_cpu_mem_usage = True,
-                device_map="auto",
-                quantization_config=BitsAndBytesConfig(load_in_8bit=True),
-            )
+            # check if model is 4 bits
+            if "4bit-128g" in cls.model_name.lower():
+                lora_name = None
+                print(
+                    "Lora not implemented for 4bit-128g llama models. Setting lora_name to None"
+                )
+                cls.model = cls.load_gptq_quantized(model_name=model_name)
+            else:
+                cls.model = LlamaForCausalLM.from_pretrained(
+                    Path(model_path),
+                    # low_cpu_mem_usage = True,
+                    device_map="auto",
+                    quantization_config=BitsAndBytesConfig(load_in_8bit=True),
+                )
         else:
             cls.model = AutoModelForCausalLM.from_pretrained(Path(model_path))
+        # set device
+        cls.device = cls.model.device
         # load tokenizer
         if type(cls.model) is LlamaForCausalLM:
             cls.tokenizer = LlamaTokenizer.from_pretrained(
@@ -169,6 +204,7 @@ class MyLangchainAgentHandler:
             framework="pt",
             tokenizer=cls.tokenizer,
             max_new_tokens=cls.max_new_tokens,
+            device=cls.device,
             **cls.pipeline_args,
         )
         # # fix missing new line characters for the model
@@ -196,3 +232,28 @@ class MyLangchainAgentHandler:
             model_name="sentence-transformers/all-mpnet-base-v2"
         )
         return cls.embedding
+
+
+if __name__ == "__main__":
+    # test this class
+
+    model_name = "llama-7b-4bit-128g"
+    lora_name = "alpaca-lora-7b"
+
+    testAgent = MyLangchainAgentHandler()
+    embedding = testAgent.load_hf_embedding()
+    hf, model, tokenizer = testAgent.load_llama_llm(
+        model_name=model_name, lora_name=lora_name, max_new_tokens=200
+    )
+
+    # test embedding
+    text1 = (
+        "This is a very long sentence and the only difference is a period at the end"
+    )
+    query_result1 = embedding.embed_query(text1)
+
+    # test llm
+    response = hf("hello")
+
+    # finish
+    print("testing complete")
