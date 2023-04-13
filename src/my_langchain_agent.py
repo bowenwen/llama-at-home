@@ -122,19 +122,19 @@ class MyLangchainAgentHandler:
 
     @classmethod
     def get_llama_llm(cls) -> Type[HuggingFacePipeline]:
-        """get a previously loaded llama, if it was never loaded, return llama-7b with max_new_tokens=50
+        """get a previously loaded llama, if it was never loaded, return llama-7b with max_new_tokens=200
 
         Returns:
             model_asset_tuple: a size three tuple of HuggingFacePipeline, model and tokenizer
         """
         if cls.model_loaded is False:
-            cls.load_llama_llm(model_name="llama-7b", max_new_tokens=50)
+            cls.load_llama_llm(model_name="llama-7b", max_new_tokens=200)
             return (cls.hf, cls.model, cls.tokenizer)
         return (cls.hf, cls.model, cls.tokenizer)
 
     @classmethod
     def load_llama_llm(
-        cls, model_name=None, lora_name=None, max_new_tokens=50
+        cls, model_name=None, lora_name=None, max_new_tokens=200
     ) -> Type[HuggingFacePipeline]:
         """quick loader of a local llama model
 

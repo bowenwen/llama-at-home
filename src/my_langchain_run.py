@@ -30,7 +30,7 @@ print(f"text2 within doc:\n{str(doc_result[1][0:5]).replace(']','...')}")
 
 # load llm
 hf, model, tokenizer = testAgent.load_llama_llm(
-    model_name=model_name, lora_name=lora_name, max_new_tokens=50
+    model_name=model_name, lora_name=lora_name, max_new_tokens=200
 )
 
 # index documents

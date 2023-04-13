@@ -41,7 +41,7 @@ lora_name = "alpaca-lora-13b"
 testAgent = MyLangchainAgentHandler()
 embedding = testAgent.load_hf_embedding()
 hf, model, tokenizer = testAgent.load_llama_llm(
-    model_name=model_name, lora_name=lora_name, max_new_tokens=50
+    model_name=model_name, lora_name=lora_name, max_new_tokens=200
 )
 
 # start simple gradio app
