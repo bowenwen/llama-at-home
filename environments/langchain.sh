@@ -41,3 +41,5 @@ pip install 'git+https://github.com/facebookresearch/detectron2.git'
 pip install protobuf==3.19.5 --force-reinstall
 pip install tensorboard==2.8.0 --force-reinstall
 pip install argilla==1.5 --force-reinstall
+# for additional langchain tools
+pip install google-api-python-client
