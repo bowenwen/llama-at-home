@@ -18,7 +18,8 @@ os.environ["PYDEVD_WARN_EVALUATION_TIMEOUT "] = "60"
 os.environ["MYLANGCHAIN_SAVE_CHAT_HISTORY"] = "1"
 
 # select model and lora
-model_name = "llama-7b"
+# model_name = "llama-7b"
+model_name = "llama-7b-4bit-128g"
 lora_name = "alpaca-lora-7b"
 
 testAgent = MyLangchainAgentHandler()
@@ -72,13 +73,13 @@ conversation = ConversationChain(
 
 def question_answer_with_memory(question):
     answer = conversation.predict(input=question)
-    with open("output_now.log", "r") as file:
+    with open("logs/output_now.log", "r") as file:
         # optioanlly, read external log output from langchain
         # require modifying packages/langchain/langchain/input.py
         langchain_log = file.read()
-    if os.getenv('MYLANGCHAIN_SAVE_CHAT_HISTORY') == "1":
-        with open("output_recent.log", "a") as f:
-            print(f"{answer}\n======", file=f)
+    if os.getenv("MYLANGCHAIN_SAVE_CHAT_HISTORY") == "1":
+        with open("logs/output_recent.log", "a") as f:
+            print(f"{answer}\n", file=f)
     return [langchain_log, answer]
 
 
