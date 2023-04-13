@@ -38,7 +38,6 @@ class MyLangchainDocsHandler:
         self.text_splitter = _get_default_text_splitter()
 
     def index_from_redis(self, index_name):
-
         self.db = Redis.from_existing_index(
             self.embedding,
             redis_url=f"redis://{self.redis_host}:6379",
@@ -47,7 +46,6 @@ class MyLangchainDocsHandler:
         return VectorStoreIndexWrapper(vectorstore=self.db)
 
     def load_docs_into_redis(self, file_list, index_name):
-
         # only load files that do not already exist, otherwise, load from existing index
         filtered_file_list = self.filter_file_list(file_list, index_name, "Redis")
         if len(filtered_file_list) == 0:
@@ -70,7 +68,6 @@ class MyLangchainDocsHandler:
         return VectorStoreIndexWrapper(vectorstore=self.db)
 
     def load_docs_into_chroma(self, file_list, index_name):
-
         # only load files that do not already exist, otherwise, load from existing index
         filtered_file_list = self.filter_file_list(file_list, index_name, "Chroma")
         if len(filtered_file_list) == 0:
@@ -155,6 +152,7 @@ class MyLangchainDocsHandler:
         for file_path in file_list:
             # get json record of docs loaded
             index_record_file = f"{self.DOC_DIR}/db_{db_type}_{index_name}.json"
+            index_record_file = os.path.relpath(index_record_file)
             if os.path.exists(index_record_file):
                 with open(index_record_file, "r", encoding="utf-8") as infile:
                     filtered_file_list = json.loads(infile.read())
