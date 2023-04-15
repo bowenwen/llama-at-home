@@ -13,8 +13,8 @@ os.environ["PYDEVD_INTERRUPT_THREAD_TIMEOUT"] = "60"
 
 
 # select model and lora
-model_name = "llama-7b"
-lora_name = "alpaca-lora-7b"
+model_name = "llama-13b"
+lora_name = "alpaca-gpt4-lora-13b-3ep"
 
 testAgent = MyLangchainAgentHandler()
 embedding = testAgent.load_hf_embedding()
@@ -60,6 +60,8 @@ print(f"Query - {query}\nResponse - \n{doc_response}")
 query = "What did the president say about Ketanji Brown Jackson"
 index.vectorstore.similarity_search(query)
 retriever = index.vectorstore.as_retriever()
+
+
 from langchain.chains import RetrievalQA
 
 retrievalQA = RetrievalQA.from_llm(llm=model, retriever=retriever, verbose=True)
