@@ -51,7 +51,10 @@ class MyLangchainDocsHandler:
         if len(filtered_file_list) == 0:
             return self.index_from_redis(index_name)
         # load new docs into index
-        vectorstore_kwargs = {"redis_url": f"redis://{self.redis_host}:6379"}
+        vectorstore_kwargs = {
+            "redis_url": f"redis://{self.redis_host}:6379",
+            "index_name": index_name,
+        }
         self.db = self.build_vectorstore_from_loaders(
             loader_list=self.build_loader_list(file_list=filtered_file_list),
             vectorstore_cls=Redis,
@@ -74,7 +77,10 @@ class MyLangchainDocsHandler:
             return self.index_from_chroma(index_name)
 
         # load new docs into index
-        vectorstore_kwargs = {"persist_directory": f"{self.CHROMA_DIR}/{index_name}"}
+        vectorstore_kwargs = {
+            "persist_directory": f"{self.CHROMA_DIR}/{index_name}",
+            "index_name": index_name,
+        }
         self.db = self.build_vectorstore_from_loaders(
             loader_list=self.build_loader_list(file_list=filtered_file_list),
             vectorstore_cls=Chroma,
@@ -148,6 +154,7 @@ class MyLangchainDocsHandler:
         Returns:
             list[str]: list of filtered file list
         """
+        previous_file_list = []
         filtered_file_list = []
         for file_path in file_list:
             # get json record of docs loaded
@@ -155,11 +162,11 @@ class MyLangchainDocsHandler:
             index_record_file = os.path.relpath(index_record_file)
             if os.path.exists(index_record_file):
                 with open(index_record_file, "r", encoding="utf-8") as infile:
-                    filtered_file_list = json.loads(infile.read())
+                    previous_file_list = json.loads(infile.read())
             else:
-                filtered_file_list = []
+                previous_file_list = []
             # check if doc has already been loaded, if so, skip
-            if file_path in filtered_file_list:
+            if file_path in previous_file_list:
                 print(f"skipping {file_path}")
             else:
                 # save json record of docs loaded
