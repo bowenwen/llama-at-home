@@ -21,7 +21,7 @@ from langchain.memory import ConversationBufferMemory, ConversationSummaryBuffer
 from langchain.prompts.prompt import PromptTemplate
 from langchain.agents import initialize_agent, Tool, AgentType
 from langchain.tools import BaseTool
-from src.my_langchain_agent import MyLangchainAgentHandler
+from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
 
 # suppress warnings for demo
@@ -44,7 +44,7 @@ model_name = "llama-13b"
 # lora_name = "alpaca-gpt4-lora-13b"
 lora_name = "alpaca-gpt4-lora-13b-3ep"
 
-testAgent = MyLangchainAgentHandler()
+testAgent = MyLangchainLlamaModelHandler()
 embedding = testAgent.load_hf_embedding()
 hf, model, tokenizer = testAgent.load_llama_llm(
     model_name=model_name, lora_name=lora_name, max_new_tokens=200

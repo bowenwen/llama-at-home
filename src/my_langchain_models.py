@@ -26,7 +26,7 @@ sys.path.append("./")
 from src.GPTQ_loader import load_quantized
 
 
-class MyLangchainAgentHandler:
+class MyLangchainLlamaModelHandler:
     """a wrapper to make creating a langchain agent easier"""
 
     model_name = ""
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     model_name = "llama-7b-4bit-128g"
     lora_name = "alpaca-lora-7b"
 
-    testAgent = MyLangchainAgentHandler()
+    testAgent = MyLangchainLlamaModelHandler()
     embedding = testAgent.load_hf_embedding()
     hf, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200

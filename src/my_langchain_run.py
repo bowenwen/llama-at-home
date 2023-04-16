@@ -4,7 +4,7 @@ import warnings
 
 sys.path.append("./")
 from scipy.spatial import distance
-from src.my_langchain_agent import MyLangchainAgentHandler
+from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
 
 # suppress warnings for demo
@@ -16,7 +16,7 @@ os.environ["PYDEVD_INTERRUPT_THREAD_TIMEOUT"] = "60"
 model_name = "llama-13b"
 lora_name = "alpaca-gpt4-lora-13b-3ep"
 
-testAgent = MyLangchainAgentHandler()
+testAgent = MyLangchainLlamaModelHandler()
 embedding = testAgent.load_hf_embedding()
 
 text1 = "This is a very long sentence and the only difference is a period at the end"
@@ -76,7 +76,7 @@ from langchain.memory import (
     ConversationBufferMemory,
 )
 from langchain.prompts.prompt import PromptTemplate
-from src.my_langchain_agent import MyLangchainAgentHandler
+from src.my_langchain_models import MyLangchainLlamaModelHandler
 
 template = """Bob and a cat are having a friendly conversation.
 

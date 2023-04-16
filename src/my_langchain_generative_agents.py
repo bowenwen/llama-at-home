@@ -8,7 +8,7 @@ sys.path.append("./")
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
 from langchain.prompts.prompt import PromptTemplate
-from src.my_langchain_agent import MyLangchainAgentHandler
+from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
 
 # suppress warnings for demo
@@ -22,7 +22,7 @@ os.environ["MYLANGCHAIN_SAVE_CHAT_HISTORY"] = "1"
 model_name = "llama-7b-4bit-128g"
 lora_name = "alpaca-lora-7b"
 
-testAgent = MyLangchainAgentHandler()
+testAgent = MyLangchainLlamaModelHandler()
 embedding = testAgent.load_hf_embedding()
 hf, model, tokenizer = testAgent.load_llama_llm(
     model_name=model_name, lora_name=lora_name, max_new_tokens=200
