@@ -184,29 +184,37 @@ if __name__ == "__main__":
     # define test documents
     test_doc_info = {
         "examples": {
-            "tool_name": "state_of_union",
+            "tool_name": "State of Union QA system",
             "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
             "files": ["index-docs/examples/state_of_the_union.txt"],
         },
         # "arxiv": {
-        #     "tool_name": "arxiv",
+        #     "tool_name": "Arxiv Papers",
         #     "description": "scientific papers from arxiv on math, science, and computer science.",
         #     "files": ["index-docs/arxiv/2302.13971.pdf"],
         # },
-        "translink": {
-            "tool_name": "translink",
-            "description": "published policy documents on transportation in Metro Vancouver by TransLink.",
-            "files": [
-                "index-docs/translink/2020-11-12_capstan_open-house_boards.pdf",
-                "index-docs/translink/2020-11-30_capstan-station_engagement-summary-report-final.pdf",
-                "index-docs/translink/rail_to_ubc_rapid_transit_study_jan_2019.pdf",
-                "index-docs/translink/t2050_10yr-priorities.pdf",
-                "index-docs/translink/TransLink - Transport 2050 Regional Transportation Strategy.pdf",
-                "index-docs/translink/translink-ubcx-summary-report-oct-2021.pdf",
-                "index-docs/translink/ubc_line_rapid_transit_study_phase_2_alternatives_evaluation.pdf",
-                "index-docs/translink/ubc_rapid_transit_study_alternatives_analysis_findings.pdf",
-            ],
-        },
+        # "psych": {
+        #     "tool_name": "Psychiatry Textbooks",
+        #     "description": "textbook on the nature, diagnosis and treatment of mental illness.",
+        #     "files": [
+        #         "index-docs/psych/DSM-5-TR.pdf",
+        #         "index-docs/psych/Synopsis_of_Psychiatry.pdf",
+        #     ],
+        # },
+        # "translink": {
+        #     "tool_name": "Translink Reports",
+        #     "description": "published policy documents on transportation in Metro Vancouver by TransLink.",
+        #     "files": [
+        #         "index-docs/translink/2020-11-12_capstan_open-house_boards.pdf",
+        #         "index-docs/translink/2020-11-30_capstan-station_engagement-summary-report-final.pdf",
+        #         "index-docs/translink/rail_to_ubc_rapid_transit_study_jan_2019.pdf",
+        #         "index-docs/translink/t2050_10yr-priorities.pdf",
+        #         "index-docs/translink/TransLink - Transport 2050 Regional Transportation Strategy.pdf",
+        #         "index-docs/translink/translink-ubcx-summary-report-oct-2021.pdf",
+        #         "index-docs/translink/ubc_line_rapid_transit_study_phase_2_alternatives_evaluation.pdf",
+        #         "index-docs/translink/ubc_rapid_transit_study_alternatives_analysis_findings.pdf",
+        #     ],
+        # },
     }
 
     # initiate agent executor
