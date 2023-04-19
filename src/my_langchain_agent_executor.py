@@ -1,23 +1,25 @@
-import logging
 import sys
 import os
 import warnings
 
-sys.path.append("./")
-
 from langchain.utilities import (
+    SearxSearchWrapper,
     WikipediaAPIWrapper,
     SerpAPIWrapper,
     GoogleSearchAPIWrapper,
-    SearxSearchWrapper,
 )
-from langchain.chains import ConversationChain, RetrievalQA
-from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
-from langchain.prompts.prompt import PromptTemplate
-from langchain.agents import initialize_agent, Tool, AgentType
-from langchain.tools import BaseTool
+from langchain.agents import (
+    initialize_agent,
+    Tool,
+    AgentType,
+)
+from langchain.chains import RetrievalQA
+
+sys.path.append("./")
 from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
+from src.my_langchain_docs import MyLangchainAggregateRetrievers
+from src.prompt import TOOL_SELECTION_PROMPT
 
 # suppress warnings for demo
 warnings.filterwarnings("ignore")
@@ -28,13 +30,22 @@ os.environ["PYDEVD_WARN_EVALUATION_TIMEOUT "] = "60"
 class MyLangchainAgentExecutorHandler:
     """a wrapper to make creating a langchain agent executor easier"""
 
-    def __init__(self, hf, tool_names, doc_info=dict(), **kwarg):
+    def __init__(
+        self, hf, tool_names, doc_info=dict(), run_tool_selector=True, **kwarg
+    ):
         self.hf = hf
+        self.run_tool_selector = run_tool_selector
         self.wiki_api = None
         self.searx_search = None
         self.google_search = None
         self.serp_search = None
-        self.doc_retrivers = dict()
+        self.doc_retrievers = dict()
+        doc_use_qachain = (
+            kwarg["doc_use_qachain"] if "doc_use_qachain" in kwarg else True
+        )
+        doc_top_k_results = (
+            kwarg["doc_top_k_results"] if "doc_top_k_results" in kwarg else 3
+        )
         # build tools
         tools = []
         if "wiki" in tool_names:
@@ -45,7 +56,7 @@ class MyLangchainAgentExecutorHandler:
             tools.append(self._init_googleapi())
         if "serp" in tool_names and "google" not in tool_names:
             tools.append(self._init_serpapi()())
-        # add document retrivers to tools
+        # add document retrievers to tools
         if len(doc_info) > 0:
             newAgent = MyLangchainLlamaModelHandler()
             embedding = newAgent.load_hf_embedding()
@@ -57,14 +68,23 @@ class MyLangchainAgentExecutorHandler:
                 index_descripton = doc_info[index_name]["description"]
                 index_filepaths = doc_info[index_name]["files"]
                 index = newDocs.load_docs_into_redis(index_filepaths, index_name)
-                vectorstore_retriever = index.vectorstore.as_retriever()
-                self.doc_retrivers[index_name] = RetrievalQA.from_chain_type(
-                    llm=hf, chain_type="stuff", retriever=vectorstore_retriever
+                vectorstore_retriever = index.vectorstore.as_retriever(
+                    search_kwargs={"k": doc_top_k_results}
                 )
+                if doc_use_qachain:
+                    self.doc_retrievers[index_name] = RetrievalQA.from_chain_type(
+                        llm=hf,
+                        chain_type="stuff",
+                        retriever=vectorstore_retriever,
+                    ).run
+                else:
+                    self.doc_retrievers[index_name] = MyLangchainAggregateRetrievers(
+                        index_name, vectorstore_retriever
+                    ).run
                 tools.append(
                     Tool(
                         name=index_tool_name,
-                        func=self.doc_retrivers[index_name].run,
+                        func=self.doc_retrievers[index_name],
                         description=index_descripton,
                     )
                 )
@@ -82,12 +102,59 @@ class MyLangchainAgentExecutorHandler:
         # print = log.info()
 
     def run(self, main_prompt):
-        # run agent executor chain
+        # print question
         display_header = (
             "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
         )
         print(display_header)
-        return self.agent.run(main_prompt)
+        # run agent executor chain
+        result = ""
+        if self.run_tool_selector:
+            tool_name = [f"- {i.name}: " for i in self.agent.tools]
+            tool_description = [f"{i.description}\n" for i in self.agent.tools]
+            tool_list_prompt = "".join(
+                [
+                    item
+                    for sublist in zip(
+                        tool_name,
+                        tool_description,
+                    )
+                    for item in sublist
+                ]
+            )
+            tool_selection_prompt = TOOL_SELECTION_PROMPT.replace(
+                "{main_prompt}", main_prompt
+            ).replace("{tool_list_prompt}", tool_list_prompt)
+
+            print("\n> Initiating tool selection prompt...", end='')
+            selection_output = self.hf(tool_selection_prompt)
+            print("\x1b[1;34m" + selection_output + "\x1b[0m", end='')
+
+            bool_selection_output = [
+                i.lower()
+                for i in selection_output.split(" ")
+                if i.lower() in ["true", "false"]
+            ]
+            selected_tools = []
+            if len(bool_selection_output) == len(tool_name):
+                # response is ok, parse tool availability
+                for i in range(0, len(tool_name)):
+                    if bool_selection_output[i] == "true":
+                        selected_tools.append(self.agent.tools[i])
+            else:
+                selected_tools = self.agent.tools
+
+            agent = initialize_agent(
+                selected_tools,
+                self.hf,
+                agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+                verbose=True,
+            )
+            result = agent.run(main_prompt)
+        else:
+            result = self.agent.run(main_prompt)
+
+        return result
 
     def _get_secrets(self, key_name):
         _key_file = open(f"secrets/{key_name}.key", "r", encoding="utf-8")
@@ -187,52 +254,20 @@ if __name__ == "__main__":
             "tool_name": "State of Union QA system",
             "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
             "files": ["index-docs/examples/state_of_the_union.txt"],
-        },
-        # "arxiv": {
-        #     "tool_name": "Arxiv Papers",
-        #     "description": "scientific papers from arxiv on math, science, and computer science.",
-        #     "files": ["index-docs/arxiv/2302.13971.pdf"],
-        # },
-        # "psych": {
-        #     "tool_name": "Psychiatry Textbooks",
-        #     "description": "textbook on the nature, diagnosis and treatment of mental illness.",
-        #     "files": [
-        #         "index-docs/psych/DSM-5-TR.pdf",
-        #         "index-docs/psych/Synopsis_of_Psychiatry.pdf",
-        #     ],
-        # },
-        # "translink": {
-        #     "tool_name": "Translink Reports",
-        #     "description": "published policy documents on transportation in Metro Vancouver by TransLink.",
-        #     "files": [
-        #         "index-docs/translink/2020-11-12_capstan_open-house_boards.pdf",
-        #         "index-docs/translink/2020-11-30_capstan-station_engagement-summary-report-final.pdf",
-        #         "index-docs/translink/rail_to_ubc_rapid_transit_study_jan_2019.pdf",
-        #         "index-docs/translink/t2050_10yr-priorities.pdf",
-        #         "index-docs/translink/TransLink - Transport 2050 Regional Transportation Strategy.pdf",
-        #         "index-docs/translink/translink-ubcx-summary-report-oct-2021.pdf",
-        #         "index-docs/translink/ubc_line_rapid_transit_study_phase_2_alternatives_evaluation.pdf",
-        #         "index-docs/translink/ubc_rapid_transit_study_alternatives_analysis_findings.pdf",
-        #     ],
-        # },
+        }
     }
 
     # initiate agent executor
+    kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
     test_agent_executor = MyLangchainAgentExecutorHandler(
-        hf=pipeline, tool_names=test_tool_list, doc_info=test_doc_info
+        hf=pipeline, tool_names=test_tool_list, doc_info=test_doc_info, **kwarg
     )
 
     # testing start
     print("testing for agent executor starts...")
-    # main_prompt = """What is the current inflation rate in the United States?"""
-    # main_prompt = """Who leaked the document on Ukraine?"""
-    # main_prompt = """Which city will be hosting the summer olympics in 2036?"""
-    main_prompt = """Which city will be hosting the summer olympics in 2032?"""
-    # main_prompt = """What is the current progress on nuclear fusion?"""
-    # main_prompt = """What wars are happening around the world right now?"""
-    # main_prompt = """Summarize the current events today on the US Economy."""
-    # main_prompt = """What is the current financial situation of TransLink?"""
-    test_agent_executor.run(main_prompt)
+    test_prompt = "What did the president say about Ketanji Brown Jackson"
+
+    test_agent_executor.run(test_prompt)
 
     # finish
     print("testing complete")

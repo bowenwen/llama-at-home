@@ -199,3 +199,23 @@ class MyLangchainDocsHandler:
                 with open(index_record_file, "w", encoding="utf-8") as outfile:
                     json.dump(filtered_file_list, outfile)
         return filtered_file_list
+
+
+class MyLangchainAggregateRetrievers:
+    """a custom document retriever that simply aggregate the result in one nice looking string"""
+
+    index_name = None
+    vectorstore_retriever = None
+
+    def __init__(self, index_name, vectorstore_retriever):
+        self.index_name = index_name
+        self.vectorstore_retriever = vectorstore_retriever
+
+    def run(self, prompt):
+        """aggregator that combine the results from vectorstore retriever"""
+        doc_results = self.vectorstore_retriever.get_relevant_documents(prompt)
+        aggregated_results = [
+            i.page_content.replace("\n", " ").replace("  ", " ").replace(" ,", ",")
+            for i in doc_results
+        ]
+        return " ... ".join(aggregated_results)
