@@ -9,7 +9,7 @@
 	url = https://github.com/bowenwen/text-generation-webui.git
 [submodule "langchain"]
 	path = packages/langchain
-	url = https://github.com/hwchase17/langchain.git
+	url = https://github.com/bowenwen/langchain.git
 [submodule "tools/GPTQ-for-LLaMa"]
 	path = tools/GPTQ-for-LLaMa
 	url = https://github.com/qwopqwop200/GPTQ-for-LLaMa.git
