@@ -1,5 +1,10 @@
+loras/alpaca-lora-*b/*
+loras/alpaca-lora-*b*/*
 *.txt
 .gitattributes
 *.json
 *.bin
 *.md
+*.pth
+*.pt
+events.out.*
