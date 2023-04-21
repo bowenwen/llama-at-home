@@ -16,3 +16,6 @@
 [submodule "tools/alpaca_lora_4bit"]
 	path = tools/alpaca_lora_4bit
 	url = https://github.com/johnsmith0031/alpaca_lora_4bit
+[submodule "tools/llama.cpp"]
+	path = tools/llama.cpp
+	url = git@github.com:bowenwen/llama.cpp.git
