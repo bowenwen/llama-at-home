@@ -31,6 +31,7 @@ cd ../..
 # install additional packages used by langchain
 conda install -y poppler
 conda install -y pytesseract
+pip install numexpr
 pip install sentence_transformers
 pip install chromadb
 pip install redis
@@ -43,3 +44,5 @@ pip install tensorboard==2.8.0 --force-reinstall
 pip install argilla==1.5 --force-reinstall
 # for additional langchain tools
 pip install google-api-python-client
+# install llama cpp connector
+pip install git+https://github.com/abetlen/llama-cpp-python.git

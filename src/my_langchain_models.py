@@ -4,7 +4,6 @@ from typing import Any, List, Optional, Type
 
 from pathlib import Path
 from peft import PeftModelForCausalLM
-from langchain.llms import HuggingFacePipeline
 from transformers import (
     # AutoConfig,
     AutoModelForCausalLM,
@@ -16,6 +15,9 @@ from transformers import (
 )
 import torch
 from tokenizers import AddedToken
+from langchain.llms import HuggingFacePipeline
+from langchain.llms import LlamaCpp
+from langchain.embeddings import LlamaCppEmbeddings
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.callbacks import BaseCallbackHandler
 
@@ -38,6 +40,7 @@ class MyLangchainLlamaModelHandler:
     hf = None
     device = None
     model_loaded = False
+    quantized = False
     DIR_MODELS = "models"
     DIR_LORAS = "loras"
     pipeline_args = {
@@ -119,6 +122,76 @@ class MyLangchainLlamaModelHandler:
         cls.model = load_quantized(model_name, **kwargs_quant)
         # torch.device("cuda:0")
         return cls.model
+
+    @classmethod
+    def get_llama_cpp_llm(cls) -> Type[LlamaCpp]:
+        if cls.model_loaded is False:
+            cls.load_llama_cpp_llm(model_name="llama-7b", max_new_tokens=200)
+            return (cls.hf, cls.model, cls.tokenizer)
+        return (cls.hf, cls.model, cls.tokenizer)
+
+    @classmethod
+    def load_llama_cpp_llm(
+        cls, model_name=None, lora_name=None, max_new_tokens=200, quantized=False
+    ) -> Type[LlamaCpp]:
+        if cls.model_loaded and cls.model_name == model_name:
+            # return previously loaded model
+            return (cls.model, cls.tokenizer)
+
+        if model_name == None:
+            cls.model_name = "llama-7b"
+        else:
+            cls.model_name = model_name
+
+        cls.quantized = quantized
+        cls.max_new_tokens = max_new_tokens
+
+        model_path = f"{cls.DIR_MODELS}/{cls.model_name}"
+        lora_dir = f"{cls.DIR_LORAS}/{lora_name}"
+
+        if lora_name not in [None, "None", ""] and cls.quantized:
+            cls.model = LlamaCpp(
+                model_path=f"{model_path}/ggml-model-q4_0.bin",
+                lora_base=f"{model_path}/ggml-model-f16.bin",
+                lora_path=f"{lora_dir}/ggml-adapter-model.bin",
+                # n_ctx=cls.max_new_tokens,
+            )
+        elif lora_name not in [None, "None", ""] and not cls.quantized:
+            cls.model = LlamaCpp(
+                model_path=f"{model_path}/ggml-model-f16.bin",
+                lora_path=f"{lora_dir}/ggml-adapter-model.bin",
+                # n_ctx=cls.max_new_tokens,
+            )
+        else:
+            cls.model = LlamaCpp(
+                model_path=f"{model_path}/ggml-model-f16.bin", n_ctx=cls.max_new_tokens
+            )
+        return cls.model
+
+    @classmethod
+    def get_llama_cpp_embedding(cls, model_name) -> Type[LlamaCppEmbeddings]:
+        if cls.embedding == None:
+            return cls.load_llama_cpp_embedding(model_name)
+        return cls.embedding
+
+    @classmethod
+    def load_llama_cpp_embedding(cls, model_name) -> Type[LlamaCppEmbeddings]:
+        """load default embedding used
+
+        Returns:
+            HuggingFaceEmbeddings: hugging face embedding model
+        """
+        cls.model_name = model_name
+        model_path = f"{cls.DIR_MODELS}/{cls.model_name}"
+        if cls.quantized:
+            cls.embedding = LlamaCppEmbeddings(
+                model_path=f"{model_path}/ggml-model-q4_0.bin"
+            )
+        else:
+            cls.embedding = LlamaCppEmbeddings(
+                model_path=f"{model_path}/ggml-model-f16.bin"
+            )
+        return cls.embedding
 
     @classmethod
     def get_llama_llm(cls) -> Type[HuggingFacePipeline]:

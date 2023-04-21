@@ -24,6 +24,10 @@ eb = testAgent.load_hf_embedding()
 pipeline, model, tokenizer = testAgent.load_llama_llm(
     model_name=model_name, lora_name=lora_name, max_new_tokens=200
 )
+# eb = testAgent.load_llama_cpp_embedding(model_name=model_name)
+# pipeline = testAgent.load_llama_cpp_llm(
+#     model_name=model_name, lora_name=lora_name, max_new_tokens=200, quantized=False
+# )
 
 # define tool list (excluding any documents)
 test_tool_list = ["wiki", "searx"]
