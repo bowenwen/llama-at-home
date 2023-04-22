@@ -19,6 +19,8 @@ sys.path.append("./")
 from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
 from src.my_langchain_docs import MyLangchainAggregateRetrievers
+from src.my_langchain_memory_store import MyLangchainMemoryStore
+from src.util import get_secrets
 from src.prompt import TOOL_SELECTION_PROMPT
 
 # suppress warnings for demo
@@ -31,9 +33,24 @@ class MyLangchainAgentExecutorHandler:
     """a wrapper to make creating a langchain agent executor easier"""
 
     def __init__(
-        self, hf, tool_names, doc_info=dict(), run_tool_selector=True, **kwarg
+        self,
+        hf,
+        embedding,
+        tool_names,
+        doc_info=dict(),
+        run_tool_selector=False,
+        update_long_term_memory=False,
+        use_long_term_memory=False,
+        **kwarg,
     ):
         self.hf = hf
+        self.update_long_term_memory = update_long_term_memory
+        self.use_long_term_memory = use_long_term_memory
+        self.long_term_memory_collection = (
+            kwarg["long_term_memory_collection"]
+            if "long_term_memory_collection" in kwarg
+            else "long_term"
+        )
         self.run_tool_selector = run_tool_selector
         self.wiki_api = None
         self.searx_search = None
@@ -58,10 +75,8 @@ class MyLangchainAgentExecutorHandler:
             tools.append(self._init_serpapi()())
         # add document retrievers to tools
         if len(doc_info) > 0:
-            newAgent = MyLangchainLlamaModelHandler()
-            embedding = newAgent.load_hf_embedding()
             newDocs = MyLangchainDocsHandler(
-                embedding=embedding, redis_host=self._get_secrets("redis_host")
+                embedding=embedding, redis_host=get_secrets("redis_host")
             )
             for index_name in list(doc_info.keys()):
                 index_tool_name = doc_info[index_name]["tool_name"]
@@ -88,7 +103,11 @@ class MyLangchainAgentExecutorHandler:
                         description=index_descripton,
                     )
                 )
-            del newAgent, embedding
+        # initialize memory bank
+        if self.update_long_term_memory or self.use_long_term_memory:
+            memory_tool = self._init_long_term_memory(embedding)
+            if self.use_long_term_memory:
+                tools.append(memory_tool)
         # finalize agent initiation
         self.agent = initialize_agent(
             tools, self.hf, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True
@@ -126,9 +145,9 @@ class MyLangchainAgentExecutorHandler:
                 "{main_prompt}", main_prompt
             ).replace("{tool_list_prompt}", tool_list_prompt)
 
-            print("\n> Initiating tool selection prompt...", end='')
+            print("\n> Initiating tool selection prompt...", end="")
             selection_output = self.hf(tool_selection_prompt)
-            print("\x1b[1;34m" + selection_output + "\x1b[0m", end='')
+            print("\x1b[1;34m" + selection_output + "\x1b[0m", end="")
 
             bool_selection_output = [
                 i.lower()
@@ -154,12 +173,21 @@ class MyLangchainAgentExecutorHandler:
         else:
             result = self.agent.run(main_prompt)
 
+        if self.update_long_term_memory:
+            self.memory_bank.add_memory(result)
+
         return result
 
-    def _get_secrets(self, key_name):
-        _key_file = open(f"secrets/{key_name}.key", "r", encoding="utf-8")
-        _key_value = _key_file.read()
-        return _key_value
+    def _init_long_term_memory(self, embedding):
+        self.memory_bank = MyLangchainMemoryStore(
+            embedding, self.long_term_memory_collection
+        )
+        memory_tool = Tool(
+            name="Memory",
+            func=self.memory_bank.retrieve_memory,
+            description="knowledge bank based on previous conversations",
+        )
+        return memory_tool
 
     def _init_wiki_api(self):
         self.wiki_api = WikipediaAPIWrapper(top_k_results=1)
@@ -187,7 +215,7 @@ class MyLangchainAgentExecutorHandler:
         # Searx API
         # https://python.langchain.com/en/latest/modules/agents/tools/examples/searx_search.html
         self.searx_search = SearxSearchWrapper(
-            searx_host=self._get_secrets("searx_host"), k=3, engines=["google"]
+            searx_host=get_secrets("searx_host"), k=3, engines=["google"]
         )
         searx_tool = Tool(
             name="Search",
@@ -210,8 +238,8 @@ class MyLangchainAgentExecutorHandler:
 
     def _init_googleapi(self):
         # Google API
-        os.environ["GOOGLE_API_KEY"] = self._get_secrets("google2api")
-        os.environ["GOOGLE_CSE_ID"] = self._get_secrets("google2cse")
+        os.environ["GOOGLE_API_KEY"] = get_secrets("google2api")
+        os.environ["GOOGLE_CSE_ID"] = get_secrets("google2cse")
         self.google_search = GoogleSearchAPIWrapper(k=3)  # top k results only
         google_tool = Tool(
             name="Google",
@@ -222,7 +250,7 @@ class MyLangchainAgentExecutorHandler:
 
     def _init_serpapi(self):
         # Serp API
-        os.environ["SERPAPI_API_KEY"] = self._get_secrets("serpapi")
+        os.environ["SERPAPI_API_KEY"] = get_secrets("serpapi")
         self.serp_search = SerpAPIWrapper()
         serp_tool = Tool(
             name="Google",
@@ -240,7 +268,7 @@ if __name__ == "__main__":
     lora_name = "alpaca-gpt4-lora-13b-3ep"
 
     testAgent = MyLangchainLlamaModelHandler()
-    eb = testAgent.load_hf_embedding()
+    eb = testAgent.get_hf_embedding()
     pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
     )
@@ -260,7 +288,11 @@ if __name__ == "__main__":
     # initiate agent executor
     kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
     test_agent_executor = MyLangchainAgentExecutorHandler(
-        hf=pipeline, tool_names=test_tool_list, doc_info=test_doc_info, **kwarg
+        hf=pipeline,
+        embedding=eb,
+        tool_names=test_tool_list,
+        doc_info=test_doc_info,
+        **kwarg,
     )
 
     # testing start
