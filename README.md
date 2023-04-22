@@ -16,7 +16,7 @@ Not interested in getting the latest development version? Install versions from 
 conda env create -f ./environments/langchain.yml
 ```
 
-### 2. Obtain weights
+### 2. Obtain weights for the base model
 
 Before you start, any downloaded or converted models need to be placed in the `models/` folder. Both langchain and text-generation-webui will need to use the models, so you might want to consider using symbolic link to avoid needing to keep two copies, for example:
 ```bash
@@ -29,7 +29,7 @@ ln -s ~/projects/llama-at-home/tools/GPTQ-for-LLaMa ~/projects/llama-at-home/too
 
 Get the 4bit huggingface version 2 (HFv2) from [here](https://rentry.org/llama-tard-v2). Downloaded weights only work for a time, until transformer update its code and it will break it eventually. For more future-proof approach, try convert the weights yourself.
 
-#### Option 2: Convert weights yourself
+#### Option 2: Convert weights for Huggingface Pipeline
 
 Request the [original facebook weights](https://github.com/facebookresearch/llama). Then convert the weight to HFv2, [detail](https://github.com/oobabooga/text-generation-webui/wiki/LLaMA-model#convert_llama_weights_to_hfpy). Note that since April 2023, [convert_llama_weights_to_hf.py](https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/convert_llama_weights_to_hf.py) is now part of the transformer repo!
 
@@ -57,6 +57,60 @@ To conv ert Quantize to 4bit, read more here: https://github.com/oobabooga/text-
 https://github.com/qwopqwop200/GPTQ-for-LLaMa.
 
 For the most part, it is easier to download the 4-bit weights, but you can also follow Step 3 to convert it yourself.
+
+#### Option 2: Convert weights for llama.cpp
+
+Instead of running on pure python and using the transformer and pytorch ecosystem, there is an alternative way of running the llama model more efficiently on cpu using [llama.cpp](https://github.com/ggerganov/llama.cpp).
+
+##### Step 1: convert base model weights
+
+For more info, see instructions from [llama.cpp](https://github.com/ggerganov/llama.cpp#prepare-data--run). Please note that you can convert weights from either the original facebook weights or the huggingface v2 weights.
+
+```bash
+cd tools/llama.cpp/
+
+# build the repo
+make
+
+# convert the models to ggml FP16 format
+python convert.py ../../models/llama-7b/
+python convert.py ../../models/llama-13b/
+python convert.py ../../models/llama-30b/
+python convert.py ../../models/llama-65b/
+
+# quantize the model to 4-bits (using method 2 = q4_0)
+./quantize ../../models/llama-7b/ggml-model-f16.bin ../../models/llama-7b/ggml-model-q4_0.bin 2
+./quantize ../../models/llama-13b/ggml-model-f16.bin ../../models/llama-13b/ggml-model-q4_0.bin 2
+./quantize ../../models/llama-30b/ggml-model-f16.bin ../../models/llama-30b/ggml-model-q4_0.bin 2
+./quantize ../../models/llama-65b/ggml-model-f16.bin ../../models/llama-65b/ggml-model-q4_0.bin 2
+
+# run the inference
+./main -m ./models/7B/ggml-model-q4_0.bin -n 128
+
+cd ../../
+```
+
+##### Step 2: convert lora weights
+
+Lora support has been added to llama.cpp, [info here](see https://github.com/ggerganov/llama.cpp/pull/820). To use it, you would need to have already trained your own loras or download one.
+
+```bash
+cd tools/llama.cpp/
+
+# convert loras
+python convert-lora-to-ggml.py ../../loras/alpaca-lora-7b
+python convert-lora-to-ggml.py ../../loras/alpaca-gpt4-lora-13b-3ep
+python convert-lora-to-ggml.py ../../loras/alpaca-lora-30b-chansung
+python convert-lora-to-ggml.py ../../loras/alpaca-lora-65b-chansung
+
+# run the inference with lora - Use the ggml-adapter-model.bin with --lora
+./main -m models/llama-7b/ggml-model-f16.bin --lora loras/alpaca-lora-7b/ggml-adapter-model.bin --color -f ./prompts/alpaca.txt -ins -b 256 --top_k 10000 --temp 0.2 --repeat_penalty 1 -t 7
+
+# run the inference with quantized model
+./main -m models/llama-7b/ggml-model-q4_0.bin --lora loras/alpaca-lora-7b/ggml-adapter-model.bin --lora-base models/llama-7b/ggml-model-f16.bin --color -f ./prompts/alpaca.txt -ins -b 256 --top_k 10000 --temp 0.2 --repeat_penalty 1 -t 7
+
+cd ../../
+```
 
 ### 3. Fine tuning your model
 
@@ -97,6 +151,8 @@ python finetune.py \
 cd ../..
 ```
 
+If your training gets interpreted, you can continue the training by changing a few lines of code in finetune.py, see [here](https://github.com/tloen/alpaca-lora/issues/44)
+
 Examples of other fine tuning results, as with the converted weights, downloaded loras may not work with the latest versions of various packages:
 * https://github.com/tloen/alpaca-lora#resources
 * https://huggingface.co/tloen/alpaca-lora-7b
@@ -106,7 +162,7 @@ Examples of other fine tuning results, as with the converted weights, downloaded
 
 ### 4. Configuring model parameters for alpaca lora
 
-Commonly, HuggingFace models will come with a `config.json` which you can use to add your own configurations, some common parameters are shown before. See [HuggingFace Documentation] for more.
+Commonly, HuggingFace models will come with a `config.json` which you can use to add your own configurations, some common parameters are shown before. See [HuggingFace Documentation](https://huggingface.co/docs/transformers/main/main_classes/model#transformers.PreTrainedModel.generate) for more info.
 
 ```json
 {
@@ -159,7 +215,6 @@ git clone https://huggingface.co/cerebras/Cerebras-GPT-6.7B
 git clone https://huggingface.co/cerebras/Cerebras-GPT-13B
 ```
 
-
 ## Using text-generation-webui
 
 ```bash
@@ -190,11 +245,11 @@ Browse to: `http://localhost:7860/?__theme=dark`
 
 ## Using LangChain
 
-Set up documents
+### Set up documents
 
 ```bash
 mkdir -p ./docs/arxiv/
-cp /homenas/media/coder/projects/LLM-documents/arxiv/* ./docs/arxiv/
+cp ~/downloads/arxiv/* ./docs/arxiv/
 ```
 
 Some reading materials on Langchain
