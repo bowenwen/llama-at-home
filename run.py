@@ -14,6 +14,8 @@ from src.my_langchain_agent_executor import MyLangchainAgentExecutorHandler
 os.environ["MYLANGCHAIN_SAVE_CHAT_HISTORY"] = "1"
 
 # select model and lora
+# model_name = "llama-65b"
+# lora_name = "alpaca-lora-65b-chansung"
 model_name = "llama-13b"
 lora_name = "alpaca-gpt4-lora-13b-3ep"
 # model_name = "llama-7b"
@@ -24,9 +26,12 @@ eb = testAgent.load_hf_embedding()
 pipeline, model, tokenizer = testAgent.load_llama_llm(
     model_name=model_name, lora_name=lora_name, max_new_tokens=200
 )
-# eb = testAgent.load_llama_cpp_embedding(model_name=model_name)
 # pipeline = testAgent.load_llama_cpp_llm(
-#     model_name=model_name, lora_name=lora_name, max_new_tokens=200, quantized=False
+#     model_name=model_name,
+#     # lora_name=lora_name,
+#     context_window=8192,
+#     max_new_tokens=200,
+#     quantized=True,
 # )
 
 # define tool list (excluding any documents)
@@ -34,19 +39,19 @@ test_tool_list = ["wiki", "searx"]
 
 # define test documents
 test_doc_info = {
-    # "examples": {
-    #     "tool_name": "State of Union QA system",
-    #     "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
-    #     "files": ["index-docs/examples/state_of_the_union.txt"],
-    # },
-    # "arxiv": {
-    #     "tool_name": "Arxiv Papers",
-    #     "description": "scientific papers from arxiv on math, science, and computer science.",
-    #     "files": [
-    #         "index-docs/arxiv/2302.13971.pdf",
-    #         "index-docs/arxiv/2304.03442.pdf",
-    #     ],
-    # },
+    "examples": {
+        "tool_name": "State of Union QA system",
+        "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
+        "files": ["index-docs/examples/state_of_the_union.txt"],
+    },
+    "arxiv": {
+        "tool_name": "Arxiv Papers",
+        "description": "scientific papers from arxiv on math, science, and computer science.",
+        "files": [
+            "index-docs/arxiv/2302.13971.pdf",
+            "index-docs/arxiv/2304.03442.pdf",
+        ],
+    },
     "translink": {
         "tool_name": "Translink Reports",
         "description": "published policy documents on transportation in Metro Vancouver by TransLink.",
@@ -76,7 +81,7 @@ test_doc_info = {
 # initiate agent executor
 args = {"doc_use_qachain": False}
 test_agent_executor = MyLangchainAgentExecutorHandler(
-    hf=pipeline, tool_names=test_tool_list, doc_info=test_doc_info, **args
+    hf=pipeline, embedding=eb, tool_names=test_tool_list, doc_info=test_doc_info, **args
 )
 
 
