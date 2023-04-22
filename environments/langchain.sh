@@ -33,6 +33,7 @@ conda install -y poppler
 conda install -y pytesseract
 pip install numexpr
 pip install sentence_transformers
+# pip install InstructorEmbedding  # not supported by langchain
 pip install chromadb
 pip install redis
 pip install unstructured
@@ -46,3 +47,7 @@ pip install argilla==1.5 --force-reinstall
 pip install google-api-python-client
 # install llama cpp connector
 pip install git+https://github.com/abetlen/llama-cpp-python.git
+# install pgvector used for long term memory
+pip install pgvector
+# sudo apt-get update -y && sudo apt-get install libpq-dev
+pip install psycopg2
