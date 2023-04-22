@@ -132,7 +132,12 @@ class MyLangchainLlamaModelHandler:
 
     @classmethod
     def load_llama_cpp_llm(
-        cls, model_name=None, lora_name=None, max_new_tokens=200, quantized=False
+        cls,
+        model_name=None,
+        lora_name=None,
+        context_window=1024,
+        max_new_tokens=200,
+        quantized=False,
     ) -> Type[LlamaCpp]:
         if cls.model_loaded and cls.model_name == model_name:
             # return previously loaded model
@@ -154,17 +159,47 @@ class MyLangchainLlamaModelHandler:
                 model_path=f"{model_path}/ggml-model-q4_0.bin",
                 lora_base=f"{model_path}/ggml-model-f16.bin",
                 lora_path=f"{lora_dir}/ggml-adapter-model.bin",
-                # n_ctx=cls.max_new_tokens,
+                n_ctx=context_window,
+                max_tokens=cls.max_new_tokens,
+                temperature=cls.pipeline_args["temperature"],
+                top_p=cls.pipeline_args["top_p"],
+                echo=False,
+                repeat_penalty=cls.pipeline_args["repetition_penalty"],
+                top_k=cls.pipeline_args["top_k"],
             )
         elif lora_name not in [None, "None", ""] and not cls.quantized:
             cls.model = LlamaCpp(
                 model_path=f"{model_path}/ggml-model-f16.bin",
                 lora_path=f"{lora_dir}/ggml-adapter-model.bin",
-                # n_ctx=cls.max_new_tokens,
+                n_ctx=context_window,
+                max_tokens=cls.max_new_tokens,
+                temperature=cls.pipeline_args["temperature"],
+                top_p=cls.pipeline_args["top_p"],
+                echo=False,
+                repeat_penalty=cls.pipeline_args["repetition_penalty"],
+                top_k=cls.pipeline_args["top_k"],
+            )
+        elif cls.quantized:
+            cls.model = LlamaCpp(
+                model_path=f"{model_path}/ggml-model-q4_0.bin",
+                n_ctx=context_window,
+                max_tokens=cls.max_new_tokens,
+                temperature=cls.pipeline_args["temperature"],
+                top_p=cls.pipeline_args["top_p"],
+                echo=False,
+                repeat_penalty=cls.pipeline_args["repetition_penalty"],
+                top_k=cls.pipeline_args["top_k"],
             )
         else:
             cls.model = LlamaCpp(
-                model_path=f"{model_path}/ggml-model-f16.bin", n_ctx=cls.max_new_tokens
+                model_path=f"{model_path}/ggml-model-f16.bin",
+                n_ctx=context_window,
+                max_tokens=cls.max_new_tokens,
+                temperature=cls.pipeline_args["temperature"],
+                top_p=cls.pipeline_args["top_p"],
+                echo=False,
+                repeat_penalty=cls.pipeline_args["repetition_penalty"],
+                top_k=cls.pipeline_args["top_k"],
             )
         return cls.model
 
