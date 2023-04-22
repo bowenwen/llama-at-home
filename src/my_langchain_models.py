@@ -203,30 +203,30 @@ class MyLangchainLlamaModelHandler:
             )
         return cls.model
 
-    @classmethod
-    def get_llama_cpp_embedding(cls, model_name) -> Type[LlamaCppEmbeddings]:
-        if cls.embedding == None:
-            return cls.load_llama_cpp_embedding(model_name)
-        return cls.embedding
+    # @classmethod
+    # def get_llama_cpp_embedding(cls, model_name) -> Type[LlamaCppEmbeddings]:
+    #     if cls.embedding == None:
+    #         return cls.load_llama_cpp_embedding(model_name)
+    #     return cls.embedding
 
-    @classmethod
-    def load_llama_cpp_embedding(cls, model_name) -> Type[LlamaCppEmbeddings]:
-        """load default embedding used
+    # @classmethod
+    # def load_llama_cpp_embedding(cls, model_name) -> Type[LlamaCppEmbeddings]:
+    #     """load default embedding used
 
-        Returns:
-            HuggingFaceEmbeddings: hugging face embedding model
-        """
-        cls.model_name = model_name
-        model_path = f"{cls.DIR_MODELS}/{cls.model_name}"
-        if cls.quantized:
-            cls.embedding = LlamaCppEmbeddings(
-                model_path=f"{model_path}/ggml-model-q4_0.bin"
-            )
-        else:
-            cls.embedding = LlamaCppEmbeddings(
-                model_path=f"{model_path}/ggml-model-f16.bin"
-            )
-        return cls.embedding
+    #     Returns:
+    #         HuggingFaceEmbeddings: hugging face embedding model
+    #     """
+    #     cls.model_name = model_name
+    #     model_path = f"{cls.DIR_MODELS}/{cls.model_name}"
+    #     if cls.quantized:
+    #         cls.embedding = LlamaCppEmbeddings(
+    #             model_path=f"{model_path}/ggml-model-q4_0.bin"
+    #         )
+    #     else:
+    #         cls.embedding = LlamaCppEmbeddings(
+    #             model_path=f"{model_path}/ggml-model-f16.bin"
+    #         )
+    #     return cls.embedding
 
     @classmethod
     def get_llama_llm(cls) -> Type[HuggingFacePipeline]:
@@ -331,6 +331,14 @@ class MyLangchainLlamaModelHandler:
     def load_hf_embedding(cls) -> Type[HuggingFaceEmbeddings]:
         """load default embedding used
 
+        WARNING - if you change embedding, all previously calculated embedding must be recalculated
+
+        source:
+        - https://huggingface.co/models?library=sentence-transformers&sort=downloads
+        - https://huggingface.co/spaces/mteb/leaderboard
+        - https://huggingface.co/hkunlp/instructor-large
+        - https://huggingface.co/sentence-transformers/all-mpnet-base-v2
+
         Returns:
             HuggingFaceEmbeddings: hugging face embedding model
         """
@@ -339,6 +347,7 @@ class MyLangchainLlamaModelHandler:
         cls.embedding = HuggingFaceEmbeddings(
             model_name="sentence-transformers/all-mpnet-base-v2"
         )
+
         return cls.embedding
 
 
@@ -349,7 +358,7 @@ if __name__ == "__main__":
     lora_name = "alpaca-lora-7b"
 
     testAgent = MyLangchainLlamaModelHandler()
-    embedding = testAgent.load_hf_embedding()
+    embedding = testAgent.get_hf_embedding()
     hf, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
     )
