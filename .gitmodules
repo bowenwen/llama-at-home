@@ -19,3 +19,6 @@
 [submodule "tools/llama.cpp"]
 	path = tools/llama.cpp
 	url = git@github.com:bowenwen/llama.cpp.git
+[submodule "tools/pgvector"]
+	path = tools/pgvector
+	url = https://github.com/pgvector/pgvector.git
