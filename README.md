@@ -1,5 +1,13 @@
 # LLaMa at Home
 
+## Getting started
+
+To obtain all the tools and development packages used in this repository:
+
+```bash
+git clone --recurse-submodules git@github.com:bowenwen/llama-at-home.git
+```
+
 ## Model and environment setup
 
 Follow this section get your working environment ready to run langchain with llama at home. All of the code, instruction and setup assume you are using gpu (cuda). You may need to review source materials where I referenced to modify the code and instruction to run with cpu.
