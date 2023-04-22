@@ -100,7 +100,7 @@ cd ../../
 
 ##### Step 2: convert lora weights
 
-Lora support has been added to llama.cpp, [info here](see https://github.com/ggerganov/llama.cpp/pull/820). To use it, you would need to have already trained your own loras or download one.
+Lora support has been added to llama.cpp, [see info here](https://github.com/ggerganov/llama.cpp/pull/820). To use it, you would need to have already trained your own loras or download one.
 
 ```bash
 cd tools/llama.cpp/
