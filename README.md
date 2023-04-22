@@ -264,10 +264,22 @@ Some reading materials on Langchain
 * https://huggingface.co/blog/hf-bitsandbytes-integration
 * https://huggingface.co/docs/transformers/v4.13.0/en/performance
 
+### Set up pgvector for memory store
 
-# Notes
+The custom memory store module uses the langchain pgvector vectorstore with a set of custom metadata attributes to keep long term memories for langchain agents. In order to use memory store, you need to first set up a postgres server with pgvector store extension. The easiest way is to use docker to build and deploy your own postgres server for langchain:
 
+```bash
+cd tools/pgvector
+docker build -t postgres:pgvector-15-latest .
+docker run -d --expose 5432 postgres:pgvector-15-latest --volume ~/apps/db-data/:/var/lib/postgresql/data/
 ```
+
+Finally, enable extension for pgvector. Run the following command, you must log into your postgres database that you are using for this application as the super user (usually postgres):
+
+```sql
+create extension vector;
+```
+
 conda env export --no-builds > ./environments/langchain.yml
 ```
 
