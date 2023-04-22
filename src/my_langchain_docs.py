@@ -10,39 +10,7 @@ from langchain.vectorstores.chroma import Chroma
 from langchain.vectorstores.redis import Redis
 from langchain.indexes.vectorstore import VectorStoreIndexWrapper
 
-from langchain.text_splitter import (
-    TextSplitter,
-    CharacterTextSplitter,
-    RecursiveCharacterTextSplitter,
-    NLTKTextSplitter,
-    SpacyTextSplitter,
-    TokenTextSplitter,
-)
-
-
-def _get_default_text_splitter(method) -> TextSplitter:
-    # Note on different chunking strategies https://www.pinecone.io/learn/chunking-strategies/
-    # Note that RecursiveCharacterTextSplitter can currently enter infinite loop:
-    # see https://github.com/hwchase17/langchain/issues/1663
-    method = method.lower()
-    if method == "character":
-        text_splitter = CharacterTextSplitter(
-            separator="\n\n",
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-        )
-    elif method == "recursive":
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-    elif method == "nltk":
-        text_splitter = NLTKTextSplitter(chunk_size=1000)
-    elif method == "spacy":
-        text_splitter = SpacyTextSplitter(chunk_size=1000)
-    elif method == "tiktoken":
-        text_splitter = TokenTextSplitter(chunk_size=10, chunk_overlap=0)
-    else:
-        raise ValueError(f"argument method {method} is not supported")
-    return text_splitter
+from src.util import get_default_text_splitter
 
 
 class MyLangchainDocsHandler:
@@ -52,14 +20,14 @@ class MyLangchainDocsHandler:
     CHROMA_DIR = "./.chroma"
     DOC_DIR = "./index-docs"
 
-    def __init__(self, embedding, redis_host=None, method="nltk"):
+    def __init__(self, embedding, redis_host=None, method="recursive"):
         self.embedding = embedding
         if redis_host == None:
             redis_host = self.DEFAULT_DOMAIN
         self.redis_host = redis_host
         # db is the current doc database
         self.db = None
-        self.text_splitter = _get_default_text_splitter(method)
+        self.text_splitter = get_default_text_splitter(method)
 
     def index_from_redis(self, index_name):
         self.db = Redis.from_existing_index(
