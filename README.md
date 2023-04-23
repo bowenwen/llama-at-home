@@ -1,6 +1,26 @@
-# LLaMa at Home
+# Llama at Home
 
-🦙@🏠: Using the LLaMa LLM and langchain to create a generative agent. Project is still in early stages and everything is work in progress.
+🦙@🏠: locally hosted generative agent using the llama LLM and langchain.
+
+## Work in progress
+
+- [ ] Storing long term memory using postgres vectorstores.
+- [ ] Implementing importance, relevance and recency calculations for long term memory retrieval.
+- [ ] Recursive planning of daily activities.
+- [ ] Reflecting on long term memory to generate self-identity statements.
+
+## Feature list
+
+* Models:
+  * llama with huggingface pipeline
+  * alpaca with Peft models
+  * llama.cpp with lora and/or quantization
+* Tools:
+  * Redis and Chroma vectorstores
+  * text and pdf formats
+  * wrappers for Wiki, Searx, docsearch tools.
+* Chains & Agents:
+  * Refined prompt and error handling for Langchain's MRKL agent executor
 
 ## Getting started
 
