@@ -1,5 +1,7 @@
 # LLaMa at Home
 
+🦙@🏠: Using the LLaMa LLM and langchain to create a generative agent. Project is still in early stages and everything is work in progress.
+
 ## Getting started
 
 To obtain all the tools and development packages used in this repository:
