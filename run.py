@@ -1,12 +1,11 @@
 import sys
 import os
 
-import gradio as gr
-
 sys.path.append("./")
 from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_agent_executor import MyLangchainAgentExecutorHandler
-
+from src.my_langchain_ui import MyLangchainUI
+from src.util import agent_logs
 
 # run the current implementation of llama-at-home
 
@@ -39,19 +38,19 @@ test_tool_list = ["wiki", "searx"]
 
 # define test documents
 test_doc_info = {
-    "examples": {
-        "tool_name": "State of Union QA system",
-        "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
-        "files": ["index-docs/examples/state_of_the_union.txt"],
-    },
-    "arxiv": {
-        "tool_name": "Arxiv Papers",
-        "description": "scientific papers from arxiv on math, science, and computer science.",
-        "files": [
-            "index-docs/arxiv/2302.13971.pdf",
-            "index-docs/arxiv/2304.03442.pdf",
-        ],
-    },
+    # "examples": {
+    #     "tool_name": "State of Union QA system",
+    #     "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
+    #     "files": ["index-docs/examples/state_of_the_union.txt"],
+    # },
+    # "arxiv": {
+    #     "tool_name": "Arxiv Papers",
+    #     "description": "scientific papers from arxiv on math, science, and computer science.",
+    #     "files": [
+    #         "index-docs/arxiv/2302.13971.pdf",
+    #         "index-docs/arxiv/2304.03442.pdf",
+    #     ],
+    # },
     "translink": {
         "tool_name": "Translink Reports",
         "description": "published policy documents on transportation in Metro Vancouver by TransLink.",
@@ -79,34 +78,28 @@ test_doc_info = {
 }
 
 # initiate agent executor
-args = {"doc_use_qachain": False}
+args = {"doc_use_qachain": False, "print_tool_selector": True}
 test_agent_executor = MyLangchainAgentExecutorHandler(
-    hf=pipeline, embedding=eb, tool_names=test_tool_list, doc_info=test_doc_info, **args
+    hf=pipeline,
+    embedding=eb,
+    tool_names=test_tool_list,
+    doc_info=test_doc_info,
+    run_tool_selector=True,
+    update_long_term_memory=False,
+    use_long_term_memory=False,
+    **args,
 )
 
 
 def run_with_logs(prompt):
-    # clear log
-    with open("logs/output_now.log", "w") as f:
-        print("", file=f)
+    agent_logs.clear_log()
     # run get to answer
     answer = test_agent_executor.run(prompt)
-    # obtain log
-    with open("logs/output_now.log", "r") as f:
-        # optioanlly, read external log output from langchain
-        # require modifying packages/langchain/langchain/input.py
-        langchain_log = f.read()
-    if os.getenv("MYLANGCHAIN_SAVE_CHAT_HISTORY") == "1":
-        with open("logs/output_recent.log", "a") as f:
-            print(f"{answer}\n", file=f)
-    return [langchain_log, answer]
+    return answer
 
 
-gr.Interface(
-    fn=run_with_logs,
-    inputs=["text"],
-    outputs=["textbox", "textbox"],
-).queue().launch(server_name="0.0.0.0", server_port=7860)
+ui_run = MyLangchainUI(run_with_logs)
+ui_run.launch(server_name="0.0.0.0", server_port=7860)
 
 print("stop")
 

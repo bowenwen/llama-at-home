@@ -21,6 +21,7 @@ from src.my_langchain_docs import MyLangchainDocsHandler
 from src.my_langchain_docs import MyLangchainAggregateRetrievers
 from src.my_langchain_memory_store import MyLangchainMemoryStore
 from src.util import get_secrets
+from src.util import agent_logs
 from src.prompt import TOOL_SELECTION_PROMPT
 
 # suppress warnings for demo
@@ -52,6 +53,9 @@ class MyLangchainAgentExecutorHandler:
             else "long_term"
         )
         self.run_tool_selector = run_tool_selector
+        self.print_tool_selector = (
+            kwarg["print_tool_selector"] if "print_tool_selector" in kwarg else True
+        )
         self.wiki_api = None
         self.searx_search = None
         self.google_search = None
@@ -113,19 +117,7 @@ class MyLangchainAgentExecutorHandler:
             tools, self.hf, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True
         )
 
-        # set up log
-        # targets = logging.StreamHandler(sys.stdout), logging.FileHandler("test.log")
-        # logging.basicConfig(format="%(message)s", level=logging.INFO, handlers=targets)
-        # log = open("test.log", "a")
-        # sys.stdout = log
-        # print = log.info()
-
     def run(self, main_prompt):
-        # print question
-        display_header = (
-            "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
-        )
-        print(display_header)
         # run agent executor chain
         result = ""
         if self.run_tool_selector:
@@ -145,9 +137,21 @@ class MyLangchainAgentExecutorHandler:
                 "{main_prompt}", main_prompt
             ).replace("{tool_list_prompt}", tool_list_prompt)
 
-            print("\n> Initiating tool selection prompt...", end="")
+            if self.print_tool_selector:
+                tool_selection_display_header = (
+                    "\n> Initiating tool selection prompt..."
+                )
+                print(tool_selection_display_header, end="")
+                agent_logs.write_log(tool_selection_display_header)
+
             selection_output = self.hf(tool_selection_prompt)
-            print("\x1b[1;34m" + selection_output + "\x1b[0m", end="")
+
+            if self.print_tool_selector:
+                tool_selection_display_result = (
+                    "\x1b[1;34m" + selection_output + "\x1b[0m\n"
+                )
+                print(tool_selection_display_result)
+                agent_logs.write_log(tool_selection_display_result)
 
             bool_selection_output = [
                 i.lower()
@@ -169,8 +173,22 @@ class MyLangchainAgentExecutorHandler:
                 agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
                 verbose=True,
             )
+            # print question
+            display_header = (
+                "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
+            )
+            print(display_header)
+            agent_logs.write_log(display_header)
+            # run agent
             result = agent.run(main_prompt)
         else:
+            # print question
+            display_header = (
+                "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
+            )
+            print(display_header)
+            agent_logs.write_log(display_header)
+            # run agent
             result = self.agent.run(main_prompt)
 
         if self.update_long_term_memory:
