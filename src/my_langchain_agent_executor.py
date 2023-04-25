@@ -45,6 +45,9 @@ class MyLangchainAgentExecutorHandler:
         **kwarg,
     ):
         self.hf = hf
+        self.use_cache_from_log = (
+            kwarg["use_cache_from_log"] if "use_cache_from_log" in kwarg else False
+        )
         self.update_long_term_memory = update_long_term_memory
         self.use_long_term_memory = use_long_term_memory
         self.long_term_memory_collection = (
@@ -53,8 +56,8 @@ class MyLangchainAgentExecutorHandler:
             else "long_term"
         )
         self.run_tool_selector = run_tool_selector
-        self.print_tool_selector = (
-            kwarg["print_tool_selector"] if "print_tool_selector" in kwarg else True
+        self.log_tool_selector = (
+            kwarg["log_tool_selector"] if "log_tool_selector" in kwarg else True
         )
         self.wiki_api = None
         self.searx_search = None
@@ -118,8 +121,17 @@ class MyLangchainAgentExecutorHandler:
         )
 
     def run(self, main_prompt):
-        # run agent executor chain
         result = ""
+        # set cache state to save cache logs
+        cached_response = agent_logs.set_cache_lookup(f"Agent Executor - {main_prompt}")
+        # if using cache from logs saved, then try to load previous log
+        if self.use_cache_from_log and cached_response is not None:
+            return cached_response
+
+        # clear old logs
+        agent_logs.clear_log()
+
+        # initiate agent executor chain
         if self.run_tool_selector:
             tool_name = [f"- {i.name}: " for i in self.agent.tools]
             tool_description = [f"{i.description}\n" for i in self.agent.tools]
@@ -137,20 +149,18 @@ class MyLangchainAgentExecutorHandler:
                 "{main_prompt}", main_prompt
             ).replace("{tool_list_prompt}", tool_list_prompt)
 
-            if self.print_tool_selector:
-                tool_selection_display_header = (
-                    "\n> Initiating tool selection prompt..."
-                )
-                print(tool_selection_display_header, end="")
+            tool_selection_display_header = "\n> Initiating tool selection prompt..."
+            print(tool_selection_display_header, end="")
+            if self.log_tool_selector:
                 agent_logs.write_log(tool_selection_display_header)
 
             selection_output = self.hf(tool_selection_prompt)
 
-            if self.print_tool_selector:
-                tool_selection_display_result = (
-                    "\x1b[1;34m" + selection_output + "\x1b[0m\n"
-                )
-                print(tool_selection_display_result)
+            tool_selection_display_result = (
+                "\x1b[1;34m" + selection_output + "\x1b[0m\n"
+            )
+            print(tool_selection_display_result)
+            if self.log_tool_selector:
                 agent_logs.write_log(tool_selection_display_result)
 
             bool_selection_output = [
@@ -173,26 +183,28 @@ class MyLangchainAgentExecutorHandler:
                 agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
                 verbose=True,
             )
-            # print question
-            display_header = (
-                "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
-            )
-            print(display_header)
-            agent_logs.write_log(display_header)
-            # run agent
-            result = agent.run(main_prompt)
         else:
-            # print question
-            display_header = (
-                "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
-            )
-            print(display_header)
-            agent_logs.write_log(display_header)
-            # run agent
-            result = self.agent.run(main_prompt)
+            agent = self.agent
+
+        # print shortlist of tools being used
+        tool_list_display = f"Tools available: {[i.name for i in selected_tools]}"
+        print(tool_list_display)
+        agent_logs.write_log(tool_list_display)
+        # print question
+        display_header = (
+            "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
+        )
+        print(display_header)
+        agent_logs.write_log(display_header)
+
+        # run agent
+        result = agent.run(main_prompt)
 
         if self.update_long_term_memory:
             self.memory_bank.add_memory(result)
+
+        # always cache the current log
+        agent_logs.save_cache()
 
         return result
 

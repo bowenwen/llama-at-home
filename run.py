@@ -78,7 +78,11 @@ test_doc_info = {
 }
 
 # initiate agent executor
-args = {"doc_use_qachain": False, "print_tool_selector": True}
+args = {
+    "doc_use_qachain": False,
+    "print_tool_selector": False,
+    "use_cache_from_log": True,
+}
 test_agent_executor = MyLangchainAgentExecutorHandler(
     hf=pipeline,
     embedding=eb,

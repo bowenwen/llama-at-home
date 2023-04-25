@@ -1,5 +1,6 @@
 import os
 import re
+import hashlib
 
 from langchain.text_splitter import (
     TextSplitter,
@@ -49,6 +50,47 @@ def get_secrets(key_name):
 
 
 class agent_logs:
+    # add log state to allow for caching of logs
+
+    @classmethod
+    def set_cache_lookup(cls, text):
+        # set the lookup value for the cache, usually the main promopt plus the agent type
+        hasher = hashlib.md5(text.strip().encode())
+        cls.cache_hash = hasher.hexdigest()
+        cls.cache_file = f"logs/saved/output_{cls.cache_hash}.log"
+        # try to load from saved cache
+        if os.path.exists(cls.cache_file):
+            cache_log = cls.read_log(cls.cache_file)
+            # overwrite current log with cache log
+            with open("logs/output_now.log", "w") as f:
+                print(cache_log, file=f)
+            if len(cache_log.split("Final Answer:")) == 1:
+                # no final answer provided, return the last observation action pair
+                return cache_log.split("Thought:")[-1].strip()
+            elif len(cache_log.split("Final Answer:")) > 1:
+                # has final answer return it
+                return cache_log.split("Final Answer:")[-1].strip()
+            else:
+                split_log = cache_log.split("\n")
+                if len(split_log) == 0:
+                    return None
+                last_n_paragraphs = (5 if len(split_log) > 5 else len(split_log)) * -1
+                # not handled, so return the last 5 paragraphs
+                return "\n".join(split_log[-last_n_paragraphs:-1])
+        return None
+
+    @classmethod
+    def save_cache(cls):
+        # save the current cache
+        try:
+            # read current log
+            current_log = cls.read_log()
+            # save another copy of the log to cache log file
+            with open(cls.cache_file, "w") as f:
+                print(current_log, file=f)
+        except:
+            print("cannot save cache log if cache lookup is not defined")
+
     @staticmethod
     def write_log(text):
         ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
@@ -61,15 +103,15 @@ class agent_logs:
                 print(f"======\n{text_to_log}\n", file=f)
 
     @staticmethod
-    def read_log():
+    def read_log(log_file="logs/output_now.log"):
         # optioanlly, read external log output from langchain
         # require modifying packages/langchain/langchain/input.py
-        with open("logs/output_now.log", "r", encoding="utf-8") as f:
-            langchain_log = f.read()
-            return langchain_log
+        with open(log_file, "r", encoding="utf-8") as f:
+            current_log = f.read()
+            return current_log
 
     @staticmethod
-    def clear_log():
+    def clear_log(log_file="logs/output_now.log"):
         # clear log so previous results don't get displayed
-        with open("logs/output_now.log", "w") as f:
+        with open(log_file, "w") as f:
             print("", file=f)

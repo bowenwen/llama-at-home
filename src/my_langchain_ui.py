@@ -71,6 +71,7 @@ class MyLangchainUI:
         # clean up new lines
         process_html = (
             process_html.replace(" \n", "\n")
+            .replace("\n\n\n", "\n")
             .replace("\n\n", "\n")
             .replace(": \n", ": ")
             .replace(":\n", ": ")
@@ -79,29 +80,33 @@ class MyLangchainUI:
         process_html = process_html.replace("\n", "<br>")
         # add colors to different content
         # https://htmlcolors.com/color-names
+        # color Tools Available Black
+        process_html = process_html.replace(
+            "Tools available:", """<p style="color:Black;">Tools available:"""
+        )
         # color Question Black
         process_html = process_html.replace(
-            "Question", """<p style="color:Black;">Question"""
+            "Question:", """</p><p style="color:Black;">Question:"""
         )
         # color Thought Medium Forest Green
         process_html = process_html.replace(
-            "Thought", """</p><p style="color:#348017;">Thought"""
+            "Thought:", """</p><p style="color:#348017;">Thought:"""
         )
         # color Action Bee Yellow
         process_html = process_html.replace(
-            "Action", """</p><p style="color:#E9AB17;">Action"""
+            "Action:", """</p><p style="color:#E9AB17;">Action:"""
         )
         # color Action Bee Yellow
         process_html = process_html.replace(
-            "Action Input", """</p><p style="color:#E9AB17;">Action Input"""
+            "Action Input:", """</p><p style="color:#E9AB17;">Action Input:"""
         )
         # color Observation Denim Dark Blue
         process_html = process_html.replace(
-            "Observation", """</p><p style="color:#151B8D;">Observation"""
+            "Observation:", """</p><p style="color:#151B8D;">Observation:"""
         )
         # color Observation Black
         process_html = process_html.replace(
-            "Final Answer", """</p><p style="color:Black;">Final Answer"""
+            "Final Answer:", """</p><p style="color:Black;">Final Answer:"""
         )
         # add closing p
         process_html = f"""{process_html}</p>"""
