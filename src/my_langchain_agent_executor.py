@@ -34,7 +34,7 @@ class MyLangchainAgentExecutorHandler:
 
     def __init__(
         self,
-        hf,
+        pipeline,
         embedding,
         tool_names,
         doc_info=dict(),
@@ -43,7 +43,7 @@ class MyLangchainAgentExecutorHandler:
         use_long_term_memory=False,
         **kwarg,
     ):
-        self.hf = hf
+        self.pipeline = pipeline
         self.use_cache_from_log = (
             kwarg["use_cache_from_log"] if "use_cache_from_log" in kwarg else False
         )
@@ -94,7 +94,7 @@ class MyLangchainAgentExecutorHandler:
                 )
                 if doc_use_qachain:
                     self.doc_retrievers[index_name] = RetrievalQA.from_chain_type(
-                        llm=hf,
+                        llm=pipeline,
                         chain_type="stuff",
                         retriever=vectorstore_retriever,
                     ).run
@@ -116,19 +116,18 @@ class MyLangchainAgentExecutorHandler:
                 tools.append(memory_tool)
         # finalize agent initiation
         self.agent = initialize_agent(
-            tools, self.hf, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True
+            tools,
+            self.pipeline,
+            agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+            verbose=True,
         )
 
     def run(self, main_prompt):
-        result = ""
         # set cache state to save cache logs
         cached_response = agent_logs.set_cache_lookup(f"Agent Executor - {main_prompt}")
         # if using cache from logs saved, then try to load previous log
-        if self.use_cache_from_log and cached_response is not None:
+        if cached_response is not None and self.use_cache_from_log:
             return cached_response
-
-        # clear old logs
-        agent_logs.clear_log()
 
         # initiate agent executor chain
         if self.run_tool_selector:
@@ -153,7 +152,7 @@ class MyLangchainAgentExecutorHandler:
             if self.log_tool_selector:
                 agent_logs.write_log(tool_selection_display_header)
 
-            selection_output = self.hf(tool_selection_prompt)
+            selection_output = self.pipeline(tool_selection_prompt)
 
             tool_selection_display_result = (
                 "\x1b[1;34m" + selection_output + "\x1b[0m\n"
@@ -177,7 +176,7 @@ class MyLangchainAgentExecutorHandler:
 
             agent = initialize_agent(
                 selected_tools,
-                self.hf,
+                self.pipeline,
                 agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
                 verbose=True,
             )
@@ -236,7 +235,7 @@ class MyLangchainAgentExecutorHandler:
         # use LLM to summarize the meaning of the Wikipedia text
         full_string = self.wiki_api.run(input_string)
         summarize_prompt = f"### Instruction: Please provide a detailed summary of the following information \n### Input:\n{full_string} \n### Response: "
-        summarized_text = self.hf(summarize_prompt)
+        summarized_text = self.pipeline(summarize_prompt)
         return summarized_text
 
     def _init_searx_search(self):
@@ -316,7 +315,7 @@ if __name__ == "__main__":
     # initiate agent executor
     kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
     test_agent_executor = MyLangchainAgentExecutorHandler(
-        hf=pipeline,
+        pipeline=pipeline,
         embedding=eb,
         tool_names=test_tool_list,
         doc_info=test_doc_info,

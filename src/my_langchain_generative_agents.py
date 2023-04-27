@@ -9,6 +9,8 @@ from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory
 from langchain.prompts.prompt import PromptTemplate
 
+from src.util import agent_logs
+
 sys.path.append("./")
 from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
@@ -74,14 +76,8 @@ class MyLangchainGenerativeAgent:
         print("conversation chain initiated.")
 
     def _question_answer_with_memory(self, question):
+        langchain_log = agent_logs.read_log()
         answer = self.conversation.predict(input=question)
-        with open("logs/output_now.log", "r") as file:
-            # optioanlly, read external log output from langchain
-            # require modifying packages/langchain/langchain/input.py
-            langchain_log = file.read()
-        if os.getenv("MYLANGCHAIN_SAVE_CHAT_HISTORY") == "1":
-            with open("logs/output_recent.log", "a") as f:
-                print(f"{answer}\n", file=f)
         return [langchain_log, answer]
 
     def start_server(self):
@@ -129,7 +125,7 @@ if __name__ == "__main__":
     # Load model
     testAgent = MyLangchainLlamaModelHandler()
     eb = testAgent.get_hf_embedding()
-    hf, model, tokenizer = testAgent.load_llama_llm(
+    pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
     )
 
@@ -149,7 +145,7 @@ if __name__ == "__main__":
     ## initiate agent executor
     kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
     test_agent_executor = MyLangchainAgentExecutorHandler(
-        hf=hf,
+        pipeline=pipeline,
         embedding=eb,
         tool_names=test_tool_list,
         doc_info=test_doc_info,
