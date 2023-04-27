@@ -6,6 +6,8 @@ from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_agent_executor import MyLangchainAgentExecutorHandler
 from src.my_langchain_ui import MyLangchainUI
 from src.util import agent_logs
+from src.chain_sequence import ChainSequence
+import src.prompt as prompts
 
 # run the current implementation of llama-at-home
 
@@ -13,18 +15,19 @@ from src.util import agent_logs
 os.environ["MYLANGCHAIN_SAVE_CHAT_HISTORY"] = "1"
 
 # select model and lora
-# model_name = "llama-65b"
-# lora_name = "alpaca-lora-65b-chansung"
+testAgent = MyLangchainLlamaModelHandler()
+eb = testAgent.load_hf_embedding()
+
 model_name = "llama-13b"
 lora_name = "alpaca-gpt4-lora-13b-3ep"
 # model_name = "llama-7b"
 # lora_name = "alpaca-lora-7b"
-
-testAgent = MyLangchainLlamaModelHandler()
-eb = testAgent.load_hf_embedding()
 pipeline, model, tokenizer = testAgent.load_llama_llm(
     model_name=model_name, lora_name=lora_name, max_new_tokens=200
 )
+
+# model_name = "llama-65b"
+# lora_name = "alpaca-lora-65b-chansung"
 # pipeline = testAgent.load_llama_cpp_llm(
 #     model_name=model_name,
 #     lora_name=lora_name,
@@ -77,32 +80,46 @@ test_doc_info = {
     # },
 }
 
-# initiate agent executor
-args = {
-    "doc_use_qachain": False,
-    "log_tool_selector": False,
-    "use_cache_from_log": True,
-}
-test_agent_executor = MyLangchainAgentExecutorHandler(
-    hf=pipeline,
-    embedding=eb,
-    tool_names=test_tool_list,
-    doc_info=test_doc_info,
-    run_tool_selector=True,
-    update_long_term_memory=False,
-    use_long_term_memory=False,
-    **args,
-)
+# # initiate agent executor
+# args = {
+#     "doc_use_qachain": False,
+#     "log_tool_selector": False,
+#     "use_cache_from_log": False,
+# }
+# test_agent_executor = MyLangchainAgentExecutorHandler(
+#     pipeline=pipeline,
+#     embedding=eb,
+#     tool_names=test_tool_list,
+#     doc_info=test_doc_info,
+#     run_tool_selector=True,
+#     update_long_term_memory=False,
+#     use_long_term_memory=False,
+#     **args,
+# )
 
+# ui_run = MyLangchainUI(test_agent_executor.run)
+# ui_run.launch(server_name="0.0.0.0", server_port=7860)
 
-def run_with_logs(prompt):
-    agent_logs.clear_log()
-    # run get to answer
-    answer = test_agent_executor.run(prompt)
-    return answer
+chain_config = [
+    {
+        "name": "task1",
+        "type": "simple",
+        "input_template": prompts.CHAIN_EXAMPLE_1,
+    },
+    {
+        "name": "task2",
+        "type": "simple",
+        "input_template": prompts.CHAIN_EXAMPLE_2,
+    },
+    {
+        "name": "task3",
+        "type": "simple",
+        "input_template": prompts.CHAIN_EXAMPLE_3,
+    },
+]
 
-
-ui_run = MyLangchainUI(run_with_logs)
+custom_chains = ChainSequence(config=chain_config, pipeline=pipeline)
+ui_run = MyLangchainUI(custom_chains.run)
 ui_run.launch(server_name="0.0.0.0", server_port=7860)
 
 print("stop")
