@@ -20,8 +20,7 @@ from src.my_langchain_models import MyLangchainLlamaModelHandler
 from src.my_langchain_docs import MyLangchainDocsHandler
 from src.my_langchain_docs import MyLangchainAggregateRetrievers
 from src.my_langchain_memory_store import MyLangchainMemoryStore
-from src.util import get_secrets
-from src.util import agent_logs
+from src.util import get_secrets, get_word_match_list, agent_logs
 from src.prompt import TOOL_SELECTION_PROMPT
 
 # suppress warnings for demo
@@ -163,11 +162,10 @@ class MyLangchainAgentExecutorHandler:
             if self.log_tool_selector:
                 agent_logs.write_log(tool_selection_display_result)
 
-            bool_selection_output = [
-                i.lower()
-                for i in selection_output.split(" ")
-                if i.lower() in ["true", "false"]
-            ]
+            bool_selection_output = get_word_match_list(
+                selection_output, ["true", "false"]
+            )
+
             selected_tools = []
             if len(bool_selection_output) == len(tool_name):
                 # response is ok, parse tool availability
@@ -187,7 +185,7 @@ class MyLangchainAgentExecutorHandler:
             agent = self.agent
 
         # print shortlist of tools being used
-        tool_list_display = f"Tools available: {[i.name for i in selected_tools]}"
+        tool_list_display = f"Tools available: {[i.name for i in agent.tools]}"
         print(tool_list_display)
         agent_logs.write_log(tool_list_display)
         # print question

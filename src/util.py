@@ -49,6 +49,14 @@ def get_secrets(key_name):
     return _key_value
 
 
+@staticmethod
+def get_word_match_list(text, word_list):
+    joined_words = "|".join(word_list)
+    match_list = re.findall(joined_words, text, flags=re.IGNORECASE)
+    match_list = [i.lower() for i in match_list]
+    return match_list
+
+
 class agent_logs:
     # add log state to allow for caching of logs
 

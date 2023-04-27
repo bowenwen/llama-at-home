@@ -27,7 +27,7 @@ pipeline, model, tokenizer = testAgent.load_llama_llm(
 )
 # pipeline = testAgent.load_llama_cpp_llm(
 #     model_name=model_name,
-#     # lora_name=lora_name,
+#     lora_name=lora_name,
 #     context_window=8192,
 #     max_new_tokens=200,
 #     quantized=True,
