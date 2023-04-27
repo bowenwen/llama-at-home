@@ -13,9 +13,20 @@ class MyLangchainUI:
         agent_logs.clear_log()
         # initialize app layouts
         if ui_type == "agent_executor_mrkl":
-            self.gradio_app = self.__init__agent_executor_mrkl(func)
+            self.gradio_app = self._init__agent_executor_mrkl(
+                self._clear_log_before_func(func)
+            )
 
-    def __init__agent_executor_mrkl(self, func):
+    @staticmethod
+    def _clear_log_before_func(func):
+        def inner1(prompt):
+            # clear old logs
+            agent_logs.clear_log()
+            func(prompt)
+
+        return inner1
+
+    def _init__agent_executor_mrkl(self, func):
         # resource:
         # - https://gradio.app/theming-guide/#discovering-themes
         # - https://gradio.app/quickstart/#more-complexity
