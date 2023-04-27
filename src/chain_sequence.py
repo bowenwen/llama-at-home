@@ -7,6 +7,7 @@ from langchain.prompts.prompt import PromptTemplate
 
 sys.path.append("./")
 from src.my_langchain_models import MyLangchainLlamaModelHandler
+from src.util import get_secrets, get_word_match_list, agent_logs
 import src.prompt as prompts
 
 
@@ -15,7 +16,7 @@ class ChainSequence:
 
     # https://python.langchain.com/en/latest/modules/chains/getting_started.html#create-a-custom-chain-with-the-chain-class
 
-    def __init__(self, config, pipeline):
+    def __init__(self, config, pipeline, **kwarg):
         """
         example for chains:
         chain_config = [
@@ -31,6 +32,10 @@ class ChainSequence:
             },
         ]
         """
+        self.use_cache_from_log = (
+            kwarg["use_cache_from_log"] if "use_cache_from_log" in kwarg else False
+        )
+
         self.chains = dict()
         self.outputs = {"input": ""}
         # TODO: add support for chain serialization - https://python.langchain.com/en/latest/modules/chains/generic/serialization.html
@@ -46,6 +51,12 @@ class ChainSequence:
                 raise ValueError("chain type not currently supported.")
 
     def run(self, input):
+        # set cache state to save cache logs
+        cached_response = agent_logs.set_cache_lookup(f"Custom Chains - {input}")
+        # if using cache from logs saved, then try to load previous log
+        if cached_response is not None and self.use_cache_from_log:
+            return cached_response
+
         print("> Initiating custom chain sequence...")
         self.outputs["input"] = input
         for task_name in list(self.chains.keys()):
@@ -56,6 +67,7 @@ class ChainSequence:
                 c["chain"].apply([input_list])[0]["text"].strip()
             )
             print(self.outputs[f"{task_name}_output"])
+            agent_logs.write_log(self.outputs[f"{task_name}_output"])
 
     def _init_llmchain(self, config, llm):
         template = config["input_template"]
