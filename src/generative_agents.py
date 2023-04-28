@@ -12,10 +12,10 @@ from langchain.prompts.prompt import PromptTemplate
 from src.util import agent_logs
 
 sys.path.append("./")
-from src.my_langchain_models import MyLangchainLlamaModelHandler
-from src.my_langchain_docs import MyLangchainDocsHandler
-from src.my_langchain_docs import MyLangchainAggregateRetrievers
-from src.my_langchain_agent_executor import MyLangchainAgentExecutorHandler
+from src.models import LlamaModelHandler
+from src.docs import DocumentHandler
+from src.docs import AggregateRetrieval
+from src.agent_executor import AgentExecutorHandler
 from src.prompt import TOOL_SELECTION_PROMPT
 
 
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     # lora_name = "alpaca-lora-7b"
 
     # Load model
-    testAgent = MyLangchainLlamaModelHandler()
+    testAgent = LlamaModelHandler()
     eb = testAgent.get_hf_embedding()
     pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     ## initiate agent executor
     kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
-    test_agent_executor = MyLangchainAgentExecutorHandler(
+    test_agent_executor = AgentExecutorHandler(
         pipeline=pipeline,
         embedding=eb,
         tool_names=test_tool_list,

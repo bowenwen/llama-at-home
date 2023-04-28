@@ -13,7 +13,7 @@ from langchain.indexes.vectorstore import VectorStoreIndexWrapper
 from src.util import get_default_text_splitter
 
 
-class MyLangchainDocsHandler:
+class DocumentHandler:
     """a wrapper to make loading my documents easier"""
 
     DEFAULT_DOMAIN = "localhost"
@@ -169,7 +169,7 @@ class MyLangchainDocsHandler:
         return filtered_file_list
 
 
-class MyLangchainAggregateRetrievers:
+class AggregateRetrieval:
     """a custom document retriever that simply aggregate the result in one nice looking string"""
 
     index_name = None

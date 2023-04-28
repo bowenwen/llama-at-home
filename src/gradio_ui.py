@@ -3,7 +3,7 @@ import gradio as gr
 from src.util import agent_logs
 
 
-class MyLangchainUI:
+class WebUI:
     """a simple and awesome ui to display agent actions and thought processes"""
 
     gradio_app = None
@@ -13,7 +13,7 @@ class MyLangchainUI:
         agent_logs.clear_log()
         # initialize app layouts
         if ui_type == "agent_executor_mrkl":
-            self.gradio_app = self._init__agent_executor_mrkl(
+            self.gradio_app = self._init_agent_executor_mrkl(
                 self._clear_log_before_func(func)
             )
 
@@ -22,11 +22,11 @@ class MyLangchainUI:
         def inner1(prompt):
             # clear old logs
             agent_logs.clear_log()
-            func(prompt)
+            return func(prompt)
 
         return inner1
 
-    def _init__agent_executor_mrkl(self, func):
+    def _init_agent_executor_mrkl(self, func):
         # resource:
         # - https://gradio.app/theming-guide/#discovering-themes
         # - https://gradio.app/quickstart/#more-complexity
@@ -137,5 +137,5 @@ if __name__ == "__main__":
         return answer
 
     # test this class
-    ui_test = MyLangchainUI(test_func)
+    ui_test = WebUI(test_func)
     ui_test.launch(server_name="0.0.0.0", server_port=7860)

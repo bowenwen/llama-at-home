@@ -16,10 +16,10 @@ from langchain.agents import (
 from langchain.chains import RetrievalQA
 
 sys.path.append("./")
-from src.my_langchain_models import MyLangchainLlamaModelHandler
-from src.my_langchain_docs import MyLangchainDocsHandler
-from src.my_langchain_docs import MyLangchainAggregateRetrievers
-from src.my_langchain_memory_store import MyLangchainMemoryStore
+from src.models import LlamaModelHandler
+from src.docs import DocumentHandler
+from src.docs import AggregateRetrieval
+from src.memory_store import MemoryStore
 from src.util import get_secrets, get_word_match_list, agent_logs
 from src.prompt import TOOL_SELECTION_PROMPT
 
@@ -29,7 +29,7 @@ os.environ["PYDEVD_INTERRUPT_THREAD_TIMEOUT"] = "60"
 os.environ["PYDEVD_WARN_EVALUATION_TIMEOUT "] = "60"
 
 
-class MyLangchainAgentExecutorHandler:
+class AgentExecutorHandler:
     """a wrapper to make creating a langchain agent executor easier"""
 
     def __init__(
@@ -81,7 +81,7 @@ class MyLangchainAgentExecutorHandler:
             tools.append(self._init_serpapi()())
         # add document retrievers to tools
         if len(doc_info) > 0:
-            newDocs = MyLangchainDocsHandler(
+            newDocs = DocumentHandler(
                 embedding=embedding, redis_host=get_secrets("redis_host")
             )
             for index_name in list(doc_info.keys()):
@@ -99,7 +99,7 @@ class MyLangchainAgentExecutorHandler:
                         retriever=vectorstore_retriever,
                     ).run
                 else:
-                    self.doc_retrievers[index_name] = MyLangchainAggregateRetrievers(
+                    self.doc_retrievers[index_name] = AggregateRetrieval(
                         index_name, vectorstore_retriever
                     ).run
                 tools.append(
@@ -128,6 +128,8 @@ class MyLangchainAgentExecutorHandler:
         # if using cache from logs saved, then try to load previous log
         if cached_response is not None and self.use_cache_from_log:
             return cached_response
+        elif self.use_cache_from_log is False:
+            agent_logs().clear_log()
 
         # initiate agent executor chain
         if self.run_tool_selector:
@@ -206,7 +208,7 @@ class MyLangchainAgentExecutorHandler:
         return result
 
     def _init_long_term_memory(self, embedding):
-        self.memory_bank = MyLangchainMemoryStore(
+        self.memory_bank = MemoryStore(
             embedding, self.long_term_memory_collection
         )
         memory_tool = Tool(
@@ -294,7 +296,7 @@ if __name__ == "__main__":
     model_name = "llama-13b"
     lora_name = "alpaca-gpt4-lora-13b-3ep"
 
-    testAgent = MyLangchainLlamaModelHandler()
+    testAgent = LlamaModelHandler()
     eb = testAgent.get_hf_embedding()
     pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
@@ -314,7 +316,7 @@ if __name__ == "__main__":
 
     # initiate agent executor
     kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
-    test_agent_executor = MyLangchainAgentExecutorHandler(
+    test_agent_executor = AgentExecutorHandler(
         pipeline=pipeline,
         embedding=eb,
         tool_names=test_tool_list,

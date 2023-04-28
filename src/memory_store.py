@@ -11,8 +11,8 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.vectorstores.pgvector import PGVector
 
 sys.path.append("./")
-from src.my_langchain_models import MyLangchainLlamaModelHandler
-from src.my_langchain_docs import MyLangchainDocsHandler
+from src.models import LlamaModelHandler
+from src.docs import DocumentHandler
 from langchain.text_splitter import TextSplitter
 
 from src.util import get_secrets
@@ -26,7 +26,7 @@ os.environ["PYDEVD_WARN_EVALUATION_TIMEOUT "] = "60"
 os.environ["MYLANGCHAIN_SAVE_CHAT_HISTORY"] = "0"
 
 
-class MyLangchainMemoryStore:
+class MemoryStore:
     """set up a long term memory handling for an agent executor to use as document tools"""
 
     CONNECTION_STRING = None
@@ -70,7 +70,6 @@ class MyLangchainMemoryStore:
         # build texts object for memory 
         memory_texts = [text]
         # build
-        json_metadata = [{"store_time":"", "access_time":"","instruction": "", "input": "", "output": "", "type": ""}]
         # method 1: build custom text
         self.PG_VECTOR_STORE.add_texts(texts=memory_texts, metadatas=json_metadata, ids=["123"])
 
@@ -89,7 +88,6 @@ class MyLangchainMemoryStore:
 
     def retrieve_memory(self, query):
         # add filter = {'type': 'reflection'}
-        result = self.PG_VECTOR_STORE.similarity_search_with_score("UNESCO", k=50)
         # example to get metadata for first item from similarity_search_with_score
         # get memory - result[0][0].page_content
         # get meta data - result[0][0].metadata
