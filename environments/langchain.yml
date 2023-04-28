@@ -253,6 +253,7 @@ dependencies:
       - olefile==0.46
       - omegaconf==2.3.0
       - onnxruntime==1.14.1
+      - openai==0.27.5
       - openapi-schema-pydantic==1.2.4
       - opencv-python==4.6.0.66
       - openpyxl==3.1.2
