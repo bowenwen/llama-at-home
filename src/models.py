@@ -359,7 +359,7 @@ if __name__ == "__main__":
 
     testAgent = LlamaModelHandler()
     embedding = testAgent.get_hf_embedding()
-    hf, model, tokenizer = testAgent.load_llama_llm(
+    pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
     )
 
@@ -370,7 +370,7 @@ if __name__ == "__main__":
     query_result1 = embedding.embed_query(text1)
 
     # test llm
-    response = hf("hello")
+    response = pipeline("hello")
 
     # finish
     print("testing complete")
