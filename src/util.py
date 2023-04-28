@@ -1,6 +1,7 @@
 import os
 import re
 import hashlib
+from datetime import datetime
 
 from langchain.text_splitter import (
     TextSplitter,
@@ -55,6 +56,11 @@ def get_word_match_list(text, word_list):
     match_list = re.findall(joined_words, text, flags=re.IGNORECASE)
     match_list = [i.lower() for i in match_list]
     return match_list
+
+
+@staticmethod
+def get_epoch_time():
+    return (datetime.now() - datetime(1970, 1, 1)).total_seconds()
 
 
 class agent_logs:
