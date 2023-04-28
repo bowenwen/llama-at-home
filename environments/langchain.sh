@@ -51,3 +51,5 @@ pip install git+https://github.com/abetlen/llama-cpp-python.git
 pip install pgvector
 # sudo apt-get update -y && sudo apt-get install libpq-dev
 pip install psycopg2
+# openai python wrapper
+pip install openai

@@ -1,11 +1,13 @@
 import sys
 import os
+from langchain.llms import AzureOpenAI
+from langchain.chat_models import AzureChatOpenAI
 
 sys.path.append("./")
-from src.my_langchain_models import MyLangchainLlamaModelHandler
-from src.my_langchain_agent_executor import MyLangchainAgentExecutorHandler
-from src.my_langchain_ui import MyLangchainUI
-from src.util import agent_logs
+from src.models import LlamaModelHandler
+from src.agent_executor import AgentExecutorHandler
+from src.gradio_ui import WebUI
+from src.util import agent_logs, get_secrets
 from src.chain_sequence import ChainSequence
 import src.prompt as prompts
 
@@ -15,26 +17,49 @@ import src.prompt as prompts
 os.environ["MYLANGCHAIN_SAVE_CHAT_HISTORY"] = "1"
 
 # select model and lora
-testAgent = MyLangchainLlamaModelHandler()
+testAgent = LlamaModelHandler()
 eb = testAgent.load_hf_embedding()
 
+# define model used
+# supported models: ["gpt-35-turbo", "llama-7b", "llama-13b", "llama-30b", "llama-65b"]
 model_name = "llama-13b"
-lora_name = "alpaca-gpt4-lora-13b-3ep"
-# model_name = "llama-7b"
-# lora_name = "alpaca-lora-7b"
-pipeline, model, tokenizer = testAgent.load_llama_llm(
-    model_name=model_name, lora_name=lora_name, max_new_tokens=200
-)
 
-# model_name = "llama-65b"
-# lora_name = "alpaca-lora-65b-chansung"
-# pipeline = testAgent.load_llama_cpp_llm(
-#     model_name=model_name,
-#     lora_name=lora_name,
-#     context_window=8192,
-#     max_new_tokens=200,
-#     quantized=True,
-# )
+if model_name == "gpt-35-turbo":
+    # https://python.langchain.com/en/latest/modules/models/llms/integrations/azure_openai_example.html
+    # https://python.langchain.com/en/latest/modules/models/chat/integrations/azure_chat_openai.html
+    pipeline = AzureChatOpenAI(
+        openai_api_base=get_secrets("azure_openapi_url"),
+        deployment_name=get_secrets("azure_openai_deployment"),
+        openai_api_key=get_secrets("azure_openapi"),
+        openai_api_type="azure",
+        openai_api_version="2023-03-15-preview",
+        model_name=model_name,
+        temperature=0.1,
+        max_tokens=200,
+    )
+elif model_name in ["llama-7b", "llama-13b"]:
+    if model_name == "llama-7b":
+        lora_name = "alpaca-gpt4-lora-13b-3ep"
+    if model_name == "llama-13b":
+        lora_name = "alpaca-gpt4-lora-13b-3ep"
+    pipeline, model, tokenizer = testAgent.load_llama_llm(
+        model_name=model_name, lora_name=lora_name, max_new_tokens=200
+    )
+elif model_name in ["llama-30b", "llama-65b"]:
+    if model_name == "llama-65b":
+        lora_name = "alpaca-lora-65b-chansung"
+    if model_name == "llama-30b":
+        lora_name = "alpaca-lora-30b-chansung"
+    pipeline = testAgent.load_llama_cpp_llm(
+        model_name=model_name,
+        lora_name=lora_name,
+        context_window=8192,
+        max_new_tokens=200,
+        quantized=True,
+    )
+else:
+    raise NotImplementedError(f"model name {model_name} not supported.")
+
 
 # define tool list (excluding any documents)
 test_tool_list = ["wiki", "searx"]
@@ -100,6 +125,9 @@ test_doc_info = {
 # ui_run = MyLangchainUI(test_agent_executor.run)
 # ui_run.launch(server_name="0.0.0.0", server_port=7860)
 
+args = {
+    "use_cache_from_log": True,
+}
 chain_config = [
     {
         "name": "task1",
@@ -118,8 +146,8 @@ chain_config = [
     },
 ]
 
-custom_chains = ChainSequence(config=chain_config, pipeline=pipeline)
-ui_run = MyLangchainUI(custom_chains.run)
+custom_chains = ChainSequence(config=chain_config, pipeline=pipeline, **args)
+ui_run = WebUI(custom_chains.run)
 ui_run.launch(server_name="0.0.0.0", server_port=7860)
 
 print("stop")
