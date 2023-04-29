@@ -45,18 +45,21 @@ class DocumentHandler:
                 doc_retriever = RetrievalQA.from_chain_type(
                     llm=pipeline,
                     chain_type="stuff",
+                    verbose=False,
                     retriever=vectorstore_retriever,
                 ).run
             elif doc_use_type == "map_reduce":
                 doc_retriever = RetrievalQA.from_chain_type(
                     llm=pipeline,
                     chain_type="map_reduce",
+                    verbose=False,
                     retriever=vectorstore_retriever,
                 ).run
             elif doc_use_type == "refine":
                 doc_retriever = RetrievalQA.from_chain_type(
                     llm=pipeline,
                     chain_type="refine",
+                    verbose=False,
                     retriever=vectorstore_retriever,
                 ).run
             elif doc_use_type == "aggregate":
