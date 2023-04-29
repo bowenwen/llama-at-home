@@ -1,6 +1,7 @@
 import sys
 import os
-from langchain.llms import AzureOpenAI
+
+# from langchain.llms import AzureOpenAI
 from langchain.chat_models import AzureChatOpenAI
 
 sys.path.append("./")
@@ -22,7 +23,7 @@ eb = testAgent.load_hf_embedding()
 
 # define model used
 # supported models: ["gpt-35-turbo", "llama-7b", "llama-13b", "llama-30b", "llama-65b"]
-model_name = "llama-13b"
+model_name = "llama-7b"
 
 if model_name == "gpt-35-turbo":
     # https://python.langchain.com/en/latest/modules/models/llms/integrations/azure_openai_example.html
@@ -39,7 +40,7 @@ if model_name == "gpt-35-turbo":
     )
 elif model_name in ["llama-7b", "llama-13b"]:
     if model_name == "llama-7b":
-        lora_name = "alpaca-gpt4-lora-13b-3ep"
+        lora_name = "alpaca-lora-7b"
     if model_name == "llama-13b":
         lora_name = "alpaca-gpt4-lora-13b-3ep"
     pipeline, model, tokenizer = testAgent.load_llama_llm(
