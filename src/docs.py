@@ -9,6 +9,8 @@ from langchain.vectorstores.base import VectorStore
 from langchain.vectorstores.chroma import Chroma
 from langchain.vectorstores.redis import Redis
 from langchain.indexes.vectorstore import VectorStoreIndexWrapper
+from langchain.chains import RetrievalQA
+from langchain.agents import Tool
 
 from src.util import get_default_text_splitter
 
@@ -28,6 +30,28 @@ class DocumentHandler:
         # db is the current doc database
         self.db = None
         self.text_splitter = get_default_text_splitter(method)
+
+    def get_tool_from_doc(
+        self, pipeline, doc_info, index_name, doc_use_qachain, doc_top_k_results
+    ):
+        index_tool_name = doc_info["tool_name"]
+        index_descripton = doc_info["description"]
+        index_filepaths = doc_info["files"]
+        index = self.load_docs_into_redis(index_filepaths, index_name)
+        vectorstore_retriever = index.vectorstore.as_retriever(
+            search_kwargs={"k": doc_top_k_results}
+        )
+        if doc_use_qachain:
+            doc_retriever = RetrievalQA.from_chain_type(
+                llm=pipeline,
+                chain_type="stuff",
+                retriever=vectorstore_retriever,
+            ).run
+        else:
+            doc_retriever = AggregateRetrieval(index_name, vectorstore_retriever).run
+        return Tool(
+            name=index_tool_name, func=doc_retriever, description=index_descripton
+        )
 
     def index_from_redis(self, index_name):
         self.db = Redis.from_existing_index(

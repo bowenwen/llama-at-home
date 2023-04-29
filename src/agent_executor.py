@@ -13,12 +13,10 @@ from langchain.agents import (
     Tool,
     AgentType,
 )
-from langchain.chains import RetrievalQA
 
 sys.path.append("./")
 from src.models import LlamaModelHandler
 from src.docs import DocumentHandler
-from src.docs import AggregateRetrieval
 from src.memory_store import MemoryStore
 from src.util import get_secrets, get_word_match_list, agent_logs
 from src.prompt import TOOL_SELECTION_PROMPT
@@ -62,7 +60,6 @@ class AgentExecutorHandler:
         self.searx_search = None
         self.google_search = None
         self.serp_search = None
-        self.doc_retrievers = dict()
         doc_use_qachain = (
             kwarg["doc_use_qachain"] if "doc_use_qachain" in kwarg else True
         )
@@ -85,28 +82,13 @@ class AgentExecutorHandler:
                 embedding=embedding, redis_host=get_secrets("redis_host")
             )
             for index_name in list(doc_info.keys()):
-                index_tool_name = doc_info[index_name]["tool_name"]
-                index_descripton = doc_info[index_name]["description"]
-                index_filepaths = doc_info[index_name]["files"]
-                index = newDocs.load_docs_into_redis(index_filepaths, index_name)
-                vectorstore_retriever = index.vectorstore.as_retriever(
-                    search_kwargs={"k": doc_top_k_results}
-                )
-                if doc_use_qachain:
-                    self.doc_retrievers[index_name] = RetrievalQA.from_chain_type(
-                        llm=pipeline,
-                        chain_type="stuff",
-                        retriever=vectorstore_retriever,
-                    ).run
-                else:
-                    self.doc_retrievers[index_name] = AggregateRetrieval(
-                        index_name, vectorstore_retriever
-                    ).run
                 tools.append(
-                    Tool(
-                        name=index_tool_name,
-                        func=self.doc_retrievers[index_name],
-                        description=index_descripton,
+                    newDocs.get_tool_from_doc(
+                        pipeline=pipeline,
+                        doc_info=doc_info[index_name],
+                        index_name=index_name,
+                        doc_use_qachain=doc_use_qachain,
+                        doc_top_k_results=doc_top_k_results,
                     )
                 )
         # initialize memory bank
@@ -200,7 +182,7 @@ class AgentExecutorHandler:
         result = agent.run(main_prompt)
 
         if self.update_long_term_memory:
-            self.memory_bank.add_memory(result)
+            self.memory_bank.add_memory(text=result, llm=self.pipeline)
 
         # always cache the current log
         agent_logs.save_cache()
@@ -208,12 +190,10 @@ class AgentExecutorHandler:
         return result
 
     def _init_long_term_memory(self, embedding):
-        self.memory_bank = MemoryStore(
-            embedding, self.long_term_memory_collection
-        )
+        self.memory_bank = MemoryStore(embedding, self.long_term_memory_collection)
         memory_tool = Tool(
             name="Memory",
-            func=self.memory_bank.retrieve_memory,
+            func=self.memory_bank.retrieve_memory_by_relevance,
             description="knowledge bank based on previous conversations",
         )
         return memory_tool
