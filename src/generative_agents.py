@@ -143,7 +143,7 @@ if __name__ == "__main__":
     }
 
     ## initiate agent executor
-    kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
+    kwarg = {"doc_use_type": "aggregate", "doc_top_k_results": 3}
     test_agent_executor = AgentExecutorHandler(
         pipeline=pipeline,
         embedding=eb,

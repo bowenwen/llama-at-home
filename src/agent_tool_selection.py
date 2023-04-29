@@ -122,7 +122,7 @@ if __name__ == "__main__":
         doc_tools = newDocs.get_tool_from_doc(
             pipeline=pipeline,
             doc_info=test_doc_info,
-            doc_use_qachain=False,
+            doc_use_type="stuff",
             doc_top_k_results=3,
         )
         tools = tools + doc_tools

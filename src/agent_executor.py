@@ -55,9 +55,7 @@ class AgentExecutorHandler:
         self.log_tool_selector = (
             kwarg["log_tool_selector"] if "log_tool_selector" in kwarg else True
         )
-        doc_use_qachain = (
-            kwarg["doc_use_qachain"] if "doc_use_qachain" in kwarg else True
-        )
+        doc_use_type = kwarg["doc_use_type"] if "doc_use_type" in kwarg else "stuff"
         doc_top_k_results = (
             kwarg["doc_top_k_results"] if "doc_top_k_results" in kwarg else 3
         )
@@ -72,7 +70,7 @@ class AgentExecutorHandler:
             doc_tools = newDocs.get_tool_from_doc(
                 pipeline=pipeline,
                 doc_info=doc_info,
-                doc_use_qachain=doc_use_qachain,
+                doc_use_type=doc_use_type,
                 doc_top_k_results=doc_top_k_results,
             )
             tools = tools + doc_tools
@@ -176,7 +174,7 @@ if __name__ == "__main__":
     }
 
     # initiate agent executor
-    kwarg = {"doc_use_qachain": False, "doc_top_k_results": 3}
+    kwarg = {"doc_use_type": "stuff", "doc_top_k_results": 3}
     test_agent_executor = AgentExecutorHandler(
         pipeline=pipeline,
         embedding=eb,
