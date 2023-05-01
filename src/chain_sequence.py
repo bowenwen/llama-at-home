@@ -13,7 +13,14 @@ from src.models import LlamaModelHandler
 from src.docs import DocumentHandler
 from src.tools import ToolHandler
 from src.util import get_secrets, get_word_match_list, agent_logs
-import src.prompt as prompts
+from src.prompts.examples import (
+    CHAIN_EXAMPLE_A1,
+    CHAIN_EXAMPLE_A2,
+    CHAIN_EXAMPLE_A3,
+    CHAIN_EXAMPLE_B1,
+    CHAIN_EXAMPLE_B2,
+    CHAIN_EXAMPLE_B3,
+)
 
 
 class ChainSequence:
@@ -200,21 +207,20 @@ if __name__ == "__main__":
         {
             "name": "task1",
             "type": "simple",
-            "input_template": prompts.CHAIN_EXAMPLE_1,
+            "input_template": CHAIN_EXAMPLE_B1,
             "tool": memory_doc_tool,
             "tool_input": "input",
         },
         {
             "name": "task2",
             "type": "simple",
-            "input_template": prompts.CHAIN_EXAMPLE_2,
+            "input_template": CHAIN_EXAMPLE_B2,
         },
         {
             "name": "task3",
             "type": "constitutional",
             "principles": ["ethical"],
-            "type": "simple",
-            "input_template": prompts.CHAIN_EXAMPLE_3,
+            "input_template": CHAIN_EXAMPLE_B3,
             "tool": searx_tool,
             "tool_input": "task2_output",
         },
@@ -230,5 +236,29 @@ if __name__ == "__main__":
     ui_run = WebUI(custom_chains.run)
     ui_run.launch(server_name="0.0.0.0", server_port=7860)
 
-    custom_chains.run(input="socks")
+    # # test 2
+    # args = {
+    #     "use_cache_from_log": True,
+    # }
+    # chain_config = [
+    #     {
+    #         "name": "task1",
+    #         "type": "simple",
+    #         "input_template": CHAIN_EXAMPLE_A1,
+    #     },
+    #     {
+    #         "name": "task2",
+    #         "type": "simple",
+    #         "input_template": CHAIN_EXAMPLE_A2,
+    #     },
+    #     {
+    #         "name": "task3",
+    #         "type": "simple",
+    #         "input_template": CHAIN_EXAMPLE_A3,
+    #     },
+    # ]
+    # # run chains
+    # custom_chains = ChainSequence(config=chain_config, pipeline=pipeline, **args)
+    # # custom_chains.run(input="what did the president say about Ketanji Brown Jackson")
+
     print("test done")
