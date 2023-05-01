@@ -4,10 +4,9 @@
 
 ## Work in progress
 
-- [ ] Storing long term memory using postgres vectorstores.
-- [ ] Implementing importance, relevance and recency calculations for long term memory retrieval.
+- [ ] Multi-step critic chains to be used for generative agent activities.
 - [ ] Recursive planning of daily activities.
-- [ ] Reflecting on long term memory to generate self-identity statements.
+- [ ] Enacting planned daily activities.
 
 ## Feature list
 
@@ -19,8 +18,15 @@
   * Redis and Chroma vectorstores
   * text and pdf formats
   * wrappers for Wiki, Searx, docsearch tools.
-* Chains & Agents:
+* Chains:
   * Refined prompt and error handling for Langchain's MRKL agent executor
+  * Improved chain sequence specification.
+* Agent memory:
+  * Storing long term memory using postgres vectorstores.
+  * Implementing importance, relevance and recency calculations for long term memory retrieval.
+* Agent reflection: 
+  * Reflecting on recalled memories.
+  * Reflecting on reflections to revise self-identity statements.
 
 ## Getting started
 
