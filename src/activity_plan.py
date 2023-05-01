@@ -1,6 +1,7 @@
 import sys
 import os
 import warnings
+import random
 
 from langchain.agents import (
     initialize_agent,
@@ -91,11 +92,16 @@ class ActivityPlan:
         return recent_memories
 
     def get_activity_list(self):
-        eligible_activity_list = """- Research: learn about the world, culture, or science.
-- News: learn about recent events. 
-- Write: write a story, joke, poem, etc.
-- Reflect: consider what you have learned and what it means for you."""
-        return eligible_activity_list
+        eligible_activity_list = [
+            "- Research: learn about the world, culture, or science.",
+            "- News: learn about recent events.",
+            "- Write: write a story, joke, poem, etc.",
+            "- Reflect: consider what you have learned and what it means for you.",
+        ]
+        random.shuffle(eligible_activity_list)
+        eligible_activity_string = "\n".join(eligible_activity_list)
+
+        return eligible_activity_string
 
     def generate_day_plan(self, llm, memory_store_retriever, num_activities=5):
         identity_statement = self.retrieve_identity(memory_store_retriever)
@@ -129,6 +135,8 @@ class ActivityPlan:
 
         # TODO: remove an activity from the list if it's already been done twice
         for n in range(2, num_activities + 1):
+            activity_list = self.get_activity_list()
+
             next_activity_selection = llm(
                 CHAIN_DAY_PLAN_NEXT_ACTIVITY.replace(
                     "{identity_statement}", identity_statement
@@ -162,7 +170,7 @@ class ActivityPlan:
         ).strip()
         overall_goal = f"My goal today is to {overall_goal_text}"
 
-        # Add memories
+        # TODO: Add memories for (1) plan and (2) overall goal
 
         return [day_plan, overall_goal]
 
