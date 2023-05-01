@@ -60,14 +60,14 @@ Yesterday, this is what you got up to:
 Your task is to select which activity to do next today. Pick just one activity from the list, providing only the activity name. If your plan for the day so far already has an activity, you should try to pick a different activity from the activity list.
 
 ### Input:
-Here is my plan for the day so far:
+Plan for the day so far:
 {plan_under_construction}
 
-Here is a list of potential activities I could do today:
+Activity list:
 {activity_list}
 
 ### Response:
-I want to do lots of different types of activities. The next activity I will add to my plan is: 
+The next activity from the activity list that I will do today is: 
 """
 
 CHAIN_DAY_PLAN_NEXT_ACTIVITY_INPUT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
