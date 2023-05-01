@@ -16,7 +16,7 @@ from src.models import LlamaModelHandler
 from src.docs import DocumentHandler
 from src.docs import AggregateRetrieval
 from src.agent_executor import AgentExecutorHandler
-from src.prompt import TOOL_SELECTION_PROMPT
+from src.prompts.tool_select import TOOL_SELECTION_PROMPT
 
 
 # suppress warnings for demo
@@ -46,7 +46,8 @@ class MyLangchainGenerativeAgent:
         ### Input:
         {input}
 
-        ### Response:"""
+        ### Response:
+        """
 
         self.prompt = PromptTemplate(
             input_variables=["history", "input"], template=self.template
@@ -117,10 +118,8 @@ if __name__ == "__main__":
     # test this class
 
     # select model and lora
-    model_name = "llama-13b"
-    lora_name = "alpaca-gpt4-lora-13b-3ep"
-    # model_name = "llama-7b"
-    # lora_name = "alpaca-lora-7b"
+    model_name = "llama-7b"
+    lora_name = "alpaca-lora-7b"
 
     # Load model
     testAgent = LlamaModelHandler()
@@ -137,7 +136,7 @@ if __name__ == "__main__":
     test_doc_info = {
         "examples": {
             "tool_name": "State of Union QA system",
-            "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
+            "description": "President Joe Biden's 2023 state of the union address.",
             "files": ["index-docs/examples/state_of_the_union.txt"],
         }
     }

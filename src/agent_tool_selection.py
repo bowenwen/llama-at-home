@@ -19,7 +19,7 @@ from src.models import LlamaModelHandler
 from src.docs import DocumentHandler
 from src.tools import ToolHandler
 from src.util import get_secrets, get_word_match_list, agent_logs
-from src.prompt import TOOL_SELECTION_PROMPT
+from src.prompts.tool_select import TOOL_SELECTION_PROMPT
 
 # suppress warnings for demo
 warnings.filterwarnings("ignore")
@@ -61,16 +61,14 @@ class AgentToolSelection:
         ).replace("{tool_list_prompt}", tool_list_prompt)
 
         tool_selection_display_header = "\n> Initiating tool selection prompt..."
-        print(tool_selection_display_header, end="")
         if self.log_tool_selector:
-            agent_logs.write_log(tool_selection_display_header)
+            agent_logs.write_log_and_print(tool_selection_display_header)
 
         selection_output = self.pipeline(tool_selection_prompt)
 
         tool_selection_display_result = "\x1b[1;34m" + selection_output + "\x1b[0m\n"
-        print(tool_selection_display_result)
         if self.log_tool_selector:
-            agent_logs.write_log(tool_selection_display_result)
+            agent_logs.write_log_and_print(tool_selection_display_result)
 
         bool_selection_output = get_word_match_list(selection_output, ["true", "false"])
 
@@ -106,7 +104,7 @@ if __name__ == "__main__":
     test_doc_info = {
         "examples": {
             "tool_name": "State of Union QA system",
-            "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
+            "description": "President Joe Biden's 2023 state of the union address.",
             "files": ["index-docs/examples/state_of_the_union.txt"],
         }
     }

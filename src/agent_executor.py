@@ -15,7 +15,7 @@ from src.docs import DocumentHandler
 from src.tools import ToolHandler
 from src.memory_store import PGMemoryStoreRetriever, PGMemoryStoreSetter
 from src.util import get_secrets, get_word_match_list, agent_logs
-from src.prompt import TOOL_SELECTION_PROMPT
+from src.prompts.tool_select import TOOL_SELECTION_PROMPT
 
 # suppress warnings for demo
 warnings.filterwarnings("ignore")
@@ -118,25 +118,23 @@ class AgentExecutorHandler:
 
         # print shortlist of tools being used
         tool_list_display = f"Tools available: {[i.name for i in agent.tools]}"
-        print(tool_list_display)
-        agent_logs.write_log(tool_list_display)
+        agent_logs.write_log_and_print(tool_list_display)
         # print question
         display_header = (
             "\x1b[1;32m" + f"""\n\nQuestion: {main_prompt}\nThought:""" + "\x1b[0m"
         )
-        print(display_header)
-        agent_logs.write_log(display_header)
+        agent_logs.write_log_and_print(display_header)
 
         # run agent
-        result = agent.run(main_prompt)
+        final_answer = agent.run(main_prompt)
 
         if self.update_long_term_memory:
-            self.memory_bank.add_memory(text=result, llm=self.pipeline)
+            self.memory_setter.add_memory(text=final_answer, llm=self.pipeline)
 
         # always cache the current log
         agent_logs.save_cache()
 
-        return result
+        return final_answer
 
     def _init_long_term_memory_retriver(self, embedding):
         memory_bank = PGMemoryStoreRetriever(
@@ -175,7 +173,7 @@ if __name__ == "__main__":
     test_doc_info = {
         "examples": {
             "tool_name": "State of Union QA system",
-            "description": "specific facts from the 2023 state of the union on Joe Biden's plan to rebuild the economy and unite the nation.",
+            "description": "President Joe Biden's 2023 state of the union address.",
             "files": ["index-docs/examples/state_of_the_union.txt"],
         }
     }

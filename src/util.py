@@ -106,15 +106,53 @@ class agent_logs:
             print("cannot save cache log if cache lookup is not defined")
 
     @staticmethod
-    def write_log(text):
+    def write_log_and_print(text, ans_type=None):
+        processed_text = agent_logs.write_log(text, ans_type)
+        print(processed_text)
+
+    @staticmethod
+    def write_log(text, ans_type=None):
+        # check if final answer
+        if ans_type == "answer":
+            text = f"Answer: {text}"
+        elif ans_type == "final":
+            text = f"Final Answer: {text}"
+        # clean up alpaca style prompts
+        text = text.replace(
+            "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n",
+            "",
+        )
+        text = text.replace(
+            "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n",
+            "",
+        )
+        text = text.replace(
+            "Prompt after formatting:\n",
+            "",
+        )
+        text = text.replace(
+            "### Instruction:\n",
+            "Query: ",
+        )
+        text = text.replace(
+            "### Input:\n",
+            "",
+        )
+        text = text.replace(
+            "### Response:\n",
+            "",
+        )
+        # clean up extra characters
         ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
         text_to_log = re.sub(ansi_escape, "", text)
-        text_to_log = re.sub(r"[\xc2\x99]", "", text_to_log)
+        text_to_log = re.sub(r"[\xc2\x99]", "", text_to_log).strip()
+        # save output
         with open("logs/output_now.log", "a") as f:
             print(text_to_log, file=f)
         if os.getenv("MYLANGCHAIN_SAVE_CHAT_HISTORY") == "1":
             with open("logs/output_recent.log", "a") as f:
                 print(f"======\n{text_to_log}\n", file=f)
+        return text_to_log
 
     @staticmethod
     def read_log(log_file="logs/output_now.log"):

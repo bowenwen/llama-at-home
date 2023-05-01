@@ -31,6 +31,14 @@ class ToolHandler:
             tools.append(self._init_serpapi())
         return tools
 
+    @staticmethod
+    def get_tools_list_descriptions(tools):
+        return "\n".join([f"- {i.name}: {i.description}" for i in tools])
+
+    @staticmethod
+    def get_tools_list(tools):
+        return [i.name for i in tools]
+
     def _init_wiki_api(self, pipeline):
         self.pipeline = pipeline
         self.wiki_api = WikipediaAPIWrapper(top_k_results=1)

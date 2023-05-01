@@ -1,4 +1,3 @@
-import os
 import gradio as gr
 from src.util import agent_logs
 
@@ -99,6 +98,9 @@ class WebUI:
         process_html = process_html.replace(
             "Question:", """</p><p style="color:Black;">Question:"""
         )
+        process_html = process_html.replace(
+            "Query:", """</p><p style="color:#348017;">Query:"""
+        )
         # color Thought Medium Forest Green
         process_html = process_html.replace(
             "Thought:", """</p><p style="color:#348017;">Thought:"""
@@ -117,7 +119,11 @@ class WebUI:
         )
         # color Observation Black
         process_html = process_html.replace(
-            "Final Answer:", """</p><p style="color:Black;">Final Answer:"""
+            "Final Answer:", """</p><p style="color:Black;"><b>Final Answer</b>:"""
+        )
+        # color Answer Denim Dark Blue
+        process_html = process_html.replace(
+            "Answer:", """</p><p style="color:#151B8D;">Answer:"""
         )
         # add closing p
         process_html = f"""{process_html}</p>"""
