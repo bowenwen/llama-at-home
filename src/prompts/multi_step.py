@@ -20,7 +20,7 @@ MULTI_STEP_TOOL_PICKER_PROMPT = """Below is an instruction that describes a task
 You need choose the best tools to gather information on the following topic:
 {follow_up_question}
 
-You also want to maximize the information you get by using different tools. You have already used the following tools:
+You want to maximize the information you get by using different tools. You have already used the following tools:
 {tools_used}
 
 Please pick only one tool.
@@ -51,8 +51,11 @@ Please answer this question using additional information provided in the input:
 {main_prompt}
 
 ### Input:
-Recently obtained information - {tool_output}
-Information from my previous notes - {previous_tool_output}
+Recently obtained information -
+{tool_output}
+
+Information from my previous notes -
+{previous_tool_output}
 
 ### Response:
 """
