@@ -17,8 +17,10 @@ This is the follow up question: """
 MULTI_STEP_TOOL_PICKER_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
 ### Instruction:
-You need choose the best tools to gather information on the following topic:
-{follow_up_question}
+You need choose the best tools to gather information on the following topic and question.
+
+Topic: {main_prompt}
+Question: {follow_up_question}
 
 You want to maximize the information you get by using different tools. You have already used the following tools:
 {tools_used}
@@ -39,7 +41,8 @@ You are using a tool called "{tool_name}" that has {tool_description}.
 Please provide relevant search terms to gather additional information in order to answer the question.
 
 ### Input:
-{follow_up_question}
+Topic: {main_prompt}
+Question: {follow_up_question}
 
 ### Response:
 The most relevant search term would be """
@@ -47,14 +50,11 @@ The most relevant search term would be """
 MULTI_STEP_TOOL_GENERATE_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
 ### Instruction:
-Please answer this question using additional information provided in the input:
+Please answer this question using the additional information provided in the input:
 {main_prompt}
 
 ### Input:
-Recently obtained information -
-{tool_output}
-
-Information from my previous notes -
+{tool_output}...
 {previous_tool_output}
 
 ### Response:
@@ -62,10 +62,10 @@ Information from my previous notes -
 MULTI_STEP_TOOL_CRITIC_EVIDENCE_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
 ### Instruction:
-Does the input address the following question?
+Please assess if the information in the input address the following question:
 {main_prompt}
 
-Please repond in yes or no.
+Please respond with only yes or no.
 
 ### Input:
 {tool_output}
@@ -75,13 +75,13 @@ Please repond in yes or no.
 MULTI_STEP_TOOL_CRITIC_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 
 ### Instruction:
-Does the input sufficiently answers the following question?
+Please assess if the input sufficiently answers the following question
 {main_prompt}
 
 Please consider the information provided relevant to the question:
 {previous_tool_output}
 
-Please repond in yes or no.
+Please respond with only yes or no.
 
 ### Input:
 {preliminary_answer}

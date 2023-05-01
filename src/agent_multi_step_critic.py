@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import warnings
 import random
 from typing import Any, List, Optional, Type, Dict
@@ -152,6 +153,9 @@ class AgentMultiStepCritic:
             )
             print(follow_up_question_prompt)
             follow_up_question = self.pipeline(follow_up_question_prompt)
+            follow_up_question = re.sub(
+                r'[^\x00-\x7f"]', "", follow_up_question
+            ).strip()
             agent_logs.write_log_and_print(
                 f"Thought: {follow_up_question}"
                 if preliminary_answer == ""
@@ -160,10 +164,9 @@ class AgentMultiStepCritic:
             # step 2: pick a tool or action
             tool_list_prompt = ToolHandler.get_tools_list_descriptions(tools)
             tool_picker_prompt = (
-                MULTI_STEP_TOOL_PICKER_PROMPT.replace(
-                    "{tool_list_prompt}", tool_list_prompt
-                )
+                MULTI_STEP_TOOL_PICKER_PROMPT.replace("{main_prompt}", main_prompt)
                 .replace("{follow_up_question}", follow_up_question)
+                .replace("{tool_list_prompt}", tool_list_prompt)
                 .replace(
                     "{tools_used}",
                     "nothing yet" if len(tools_used) == 0 else str(tools_used),
@@ -171,6 +174,7 @@ class AgentMultiStepCritic:
             )
             print(tool_picker_prompt)
             tool_picked = self.pipeline(tool_picker_prompt)
+            tool_picked = re.sub(r'[^\x00-\x7f"]', "", tool_picked).strip()
             agent_logs.write_log_and_print(f"Action: {tool_picked}")
             # handling error with picking tool
             tool_bool_processor = [tool_picked.lower() in i.lower() for i in tool_list]
@@ -195,9 +199,14 @@ class AgentMultiStepCritic:
                         if preliminary_answer == ""
                         else f"{follow_up_question}\n\nYou already know this: {preliminary_answer}.\n",
                     )
+                    .replace("{main_prompt}", main_prompt)
                 )
                 print(tool_user_prompt)
                 tool_input = self.pipeline(tool_user_prompt)
+                # remove quotation mark and non unicode characters
+                tool_input = re.sub(r'[^\x00-\x7f"]', "", tool_input).strip()
+                # stripe any text after period
+                tool_input = tool_input.split(".")[0]
             else:
                 tool_input = follow_up_question
             agent_logs.write_log_and_print(f"Action Input: {tool_input}")
