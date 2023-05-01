@@ -141,7 +141,7 @@ class AgentMultiStepCritic:
         previous_tool_output = ""
         preliminary_answer = ""
         number_of_tries = 0
-        while enough_info == False and number_of_tries <= self.max_tool_use:
+        while enough_info == False and number_of_tries < self.max_tool_use:
             # step 1: ask follow up question
             follow_up_question_prompt = MULTI_STEP_TOOL_FOLLOW_UP_PROMPT.replace(
                 "{main_prompt}", main_prompt
@@ -182,7 +182,12 @@ class AgentMultiStepCritic:
                         "{tool_name}", current_tool.name
                     )
                     .replace("{tool_description}", current_tool.description)
-                    .replace("{follow_up_question}", follow_up_question)
+                    .replace(
+                        "{follow_up_question}",
+                        follow_up_question
+                        if preliminary_answer == ""
+                        else f"{follow_up_question}\n\nYou already know this: {preliminary_answer}.\n",
+                    )
                 )
                 print(tool_user_prompt)
                 tool_input = self.pipeline(tool_user_prompt)
