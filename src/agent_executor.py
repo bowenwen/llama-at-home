@@ -13,7 +13,7 @@ from src.models import LlamaModelHandler
 from src.agent_tool_selection import AgentToolSelection
 from src.docs import DocumentHandler
 from src.tools import ToolHandler
-from src.memory_store import MemoryStore
+from src.memory_store import PGMemoryStoreRetriever, PGMemoryStoreSetter
 from src.util import get_secrets, get_word_match_list, agent_logs
 from src.prompt import TOOL_SELECTION_PROMPT
 
@@ -76,7 +76,8 @@ class AgentExecutorHandler:
             tools = tools + doc_tools
         # initialize memory bank
         if self.update_long_term_memory or self.use_long_term_memory:
-            memory_tool = self._init_long_term_memory(embedding)
+            self.memory_setter = self._init_long_term_memory_setter(embedding)
+            memory_tool = self._init_long_term_memory_retriver(embedding)
             if self.use_long_term_memory:
                 tools.append(memory_tool)
         # finalize agent initiation
@@ -137,14 +138,20 @@ class AgentExecutorHandler:
 
         return result
 
-    def _init_long_term_memory(self, embedding):
-        self.memory_bank = MemoryStore(embedding, self.long_term_memory_collection)
+    def _init_long_term_memory_retriver(self, embedding):
+        memory_bank = PGMemoryStoreRetriever(
+            embedding, self.long_term_memory_collection
+        )
         memory_tool = Tool(
             name="Memory",
-            func=self.memory_bank.retrieve_memory_by_relevance_rank,
+            func=memory_bank.retrieve_memory_list,
             description="knowledge bank based on previous conversations",
         )
         return memory_tool
+
+    def _init_long_term_memory_setter(self, embedding):
+        memory_bank = PGMemoryStoreSetter(embedding, self.long_term_memory_collection)
+        return memory_bank
 
 
 if __name__ == "__main__":
