@@ -179,7 +179,7 @@ if __name__ == "__main__":
     # get document tool
     test_doc_info = {
         "examples": {
-            "tool_name": "State of Union QA system",
+            "tool_name": "State of Union Document",
             "description": "President Joe Biden's 2023 state of the union address.",
             "files": ["index-docs/examples/state_of_the_union.txt"],
         },
