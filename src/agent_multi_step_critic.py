@@ -1,6 +1,7 @@
 import sys
 import os
 import warnings
+import random
 from typing import Any, List, Optional, Type, Dict
 
 from langchain.agents import (
@@ -171,10 +172,16 @@ class AgentMultiStepCritic:
             print(tool_picker_prompt)
             tool_picked = self.pipeline(tool_picker_prompt)
             agent_logs.write_log_and_print(f"Action: {tool_picked}")
-            tool_picked = tool_picked if tool_picked in tool_list else tool_list[0]
-            if tool_picked not in tools_used:
-                tools_used.append(tool_picked)
-            current_tool = tools[tool_list.index(tool_picked)]
+            # handling error with picking tool
+            tool_bool_processor = [tool_picked.lower() in i.lower() for i in tool_list]
+            tool_picked_index = (
+                tool_bool_processor.index(True)
+                if True in tool_bool_processor
+                else random.randint(1, len(tool_list))
+            )
+            current_tool = tools[tool_picked_index]
+            if current_tool.name not in tools_used:
+                tools_used.append(current_tool.name)
             # step 3: pick an input for the tool
             if self.generate_search_term:
                 tool_user_prompt = (
