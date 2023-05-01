@@ -1,6 +1,8 @@
+import sys
 import os
 import json
 from typing import Any, List, Optional, Type
+from datetime import datetime
 
 from langchain.document_loaders import TextLoader
 from langchain.document_loaders import UnstructuredPDFLoader
@@ -12,7 +14,9 @@ from langchain.indexes.vectorstore import VectorStoreIndexWrapper
 from langchain.chains import RetrievalQA
 from langchain.agents import Tool
 
-from src.util import get_default_text_splitter
+sys.path.append("./")
+from src.util import get_default_text_splitter, get_epoch_time
+from src.memory_store import PGMemoryStoreRetriever
 
 
 class DocumentHandler:
@@ -36,40 +40,42 @@ class DocumentHandler:
         for index_name in list(doc_info.keys()):
             index_tool_name = doc_info[index_name]["tool_name"]
             index_descripton = doc_info[index_name]["description"]
-            index_filepaths = doc_info[index_name]["files"]
-            index = self.load_docs_into_redis(index_filepaths, index_name)
-            vectorstore_retriever = index.vectorstore.as_retriever(
-                search_kwargs={"k": doc_top_k_results}
+            index_is_memory = (
+                doc_info[index_name]["memory_type"]
+                if "memory_type" in doc_info[index_name]
+                else None
             )
-            if doc_use_type == "stuff":
-                doc_retriever = RetrievalQA.from_chain_type(
-                    llm=pipeline,
-                    chain_type="stuff",
-                    verbose=False,
-                    retriever=vectorstore_retriever,
-                ).run
-            elif doc_use_type == "map_reduce":
-                doc_retriever = RetrievalQA.from_chain_type(
-                    llm=pipeline,
-                    chain_type="map_reduce",
-                    verbose=False,
-                    retriever=vectorstore_retriever,
-                ).run
-            elif doc_use_type == "refine":
-                doc_retriever = RetrievalQA.from_chain_type(
-                    llm=pipeline,
-                    chain_type="refine",
-                    verbose=False,
-                    retriever=vectorstore_retriever,
-                ).run
-            elif doc_use_type == "aggregate":
-                doc_retriever = AggregateRetrieval(
-                    index_name, vectorstore_retriever
-                ).run
+            if index_is_memory is not None:
+                memory = PGMemoryStoreRetriever(embedding=self.embedding)
+                # result = memory.get_relevant_documents("test memory")
+                if doc_use_type == "aggregate":
+                    doc_retriever = AggregateRetrieval(vectorstore_retriever=memory).run
+                else:
+                    # chain type can be: ["stuff", "map_reduce", "refine"]
+                    doc_retriever = RetrievalQA.from_chain_type(
+                        llm=pipeline,
+                        chain_type=doc_use_type,
+                        verbose=False,
+                        retriever=memory,
+                    ).run
             else:
-                doc_retriever = AggregateRetrieval(
-                    index_name, vectorstore_retriever
-                ).run
+                index_filepaths = doc_info[index_name]["files"]
+                index = self.load_docs_into_redis(index_filepaths, index_name)
+                vectorstore_retriever = index.vectorstore.as_retriever(
+                    search_kwargs={"k": doc_top_k_results}
+                )
+                if doc_use_type == "aggregate":
+                    doc_retriever = AggregateRetrieval(vectorstore_retriever).run
+                else:
+                    # chain type can be: ["stuff", "map_reduce", "refine"]
+                    doc_retriever = RetrievalQA.from_chain_type(
+                        llm=pipeline,
+                        chain_type=doc_use_type,
+                        verbose=False,
+                        retriever=vectorstore_retriever,
+                    ).run
+                # debug
+                # test_b = vectorstore_retriever.get_relevant_documents("judge")
 
             tools.append(
                 Tool(
@@ -223,18 +229,52 @@ class DocumentHandler:
 class AggregateRetrieval:
     """a custom document retriever that simply aggregate the result in one nice looking string"""
 
-    index_name = None
     vectorstore_retriever = None
 
-    def __init__(self, index_name, vectorstore_retriever):
-        self.index_name = index_name
+    def __init__(self, vectorstore_retriever):
         self.vectorstore_retriever = vectorstore_retriever
 
-    def run(self, prompt):
+    def run(self, prompt, **kwargs):
         """aggregator that combine the results from vectorstore retriever"""
-        doc_results = self.vectorstore_retriever.get_relevant_documents(prompt)
-        aggregated_results = [
-            i.page_content.replace("\n", " ").replace("  ", " ").replace(" ,", ",")
-            for i in doc_results
-        ]
+        doc_results = self.vectorstore_retriever.get_relevant_documents(
+            prompt, **kwargs
+        )
+        include_time = kwargs["include_time"] if "include_time" in kwargs else True
+
+        if include_time and ("store_time" in doc_results[0].metadata):
+            # Feb 25, 2022 —
+            aggregated_results = [
+                "{} — {}".format(
+                    self._time_elapsed_description(i.metadata["store_time"]),
+                    i.page_content.replace("\n", " ")
+                    .replace("  ", " ")
+                    .replace(" ,", ","),
+                )
+                for i in doc_results
+            ]
+        else:
+            aggregated_results = [
+                i.page_content.replace("\n", " ").replace("  ", " ").replace(" ,", ",")
+                for i in doc_results
+            ]
         return " ... ".join(aggregated_results)
+
+    @staticmethod
+    def _time_elapsed_description(time):
+        time_in_hours = (get_epoch_time() - float(time)) / (3600)
+        result = ""
+
+        if time_in_hours < 1:
+            result = "Just now"
+        elif time_in_hours > 1 and time_in_hours < 24:
+            result = f"{round(time_in_hours)} hours ago"
+        elif time_in_hours > 24 and time_in_hours < (24 * 7):
+            result = f"{round(time_in_hours/24)} days ago"
+        elif time_in_hours > (24 * 7) and time_in_hours < (24 * 30):
+            result = f"{round(time_in_hours/(24*7))} weeks ago"
+        elif time_in_hours > (24 * 30) and time_in_hours < (24 * 365):
+            result = f"{round(time_in_hours/(24*30))} months ago"
+        else:
+            result = "Over a year ago"
+
+        return result
