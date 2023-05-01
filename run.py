@@ -10,7 +10,7 @@ from src.agent_executor import AgentExecutorHandler
 from src.gradio_ui import WebUI
 from src.util import agent_logs, get_secrets
 from src.chain_sequence import ChainSequence
-import src.prompt as prompts
+import src.prompts as prompts
 
 # run the current implementation of llama-at-home
 
@@ -131,17 +131,17 @@ chain_config = [
     {
         "name": "task1",
         "type": "simple",
-        "input_template": prompts.CHAIN_EXAMPLE_A1,
+        "input_template": prompts.examples.CHAIN_EXAMPLE_A1,
     },
     {
         "name": "task2",
         "type": "simple",
-        "input_template": prompts.CHAIN_EXAMPLE_A2,
+        "input_template": prompts.examples.CHAIN_EXAMPLE_A2,
     },
     {
         "name": "task3",
         "type": "simple",
-        "input_template": prompts.CHAIN_EXAMPLE_A3,
+        "input_template": prompts.examples.CHAIN_EXAMPLE_A3,
     },
 ]
 
