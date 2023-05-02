@@ -1,5 +1,10 @@
+import sys
 import gradio as gr
-from src.util import agent_logs
+import hashlib
+from datetime import datetime
+
+sys.path.append("./")
+from src.util import agent_logs, get_epoch_time
 
 
 class WebUI:
@@ -129,8 +134,33 @@ class WebUI:
         process_html = f"""{process_html}</p>"""
         return process_html
 
-    def launch(self, server_name="0.0.0.0", server_port=7860):
-        self.gradio_app.queue().launch(server_name=server_name, server_port=server_port)
+    @staticmethod
+    def generate_auth():
+        temp_user = "test"
+        temp_password = hashlib.md5(str(get_epoch_time()).strip().encode()).hexdigest()
+        auth = (temp_user, temp_password)
+        print(f"A temporary auth value as been generated: {auth}")
+        return auth
+
+    def launch(
+        self,
+        server_name="127.0.0.1",
+        server_port=7860,
+        inbrowser=False,
+        prevent_thread_lock=False,
+        auth=None,
+        share=False,
+    ):
+        if share == True and auth is None:
+            auth = self.generate_auth()
+        self.gradio_app.queue().launch(
+            server_name=server_name,
+            server_port=server_port,
+            inbrowser=inbrowser,
+            prevent_thread_lock=prevent_thread_lock,
+            auth=auth,
+            share=share,
+        )
 
 
 if __name__ == "__main__":

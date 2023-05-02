@@ -147,7 +147,14 @@ chain_config = [
 
 custom_chains = ChainSequence(config=chain_config, pipeline=pipeline, **args)
 ui_run = WebUI(custom_chains.run)
-ui_run.launch(server_name="0.0.0.0", server_port=7860)
+ui_run.launch(
+    server_name="0.0.0.0",
+    server_port=7860,
+    inbrowser=False,
+    prevent_thread_lock=False,
+    auth=None,
+    share=False,
+)
 
 print("stop")
 
