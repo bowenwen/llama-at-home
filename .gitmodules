@@ -1,15 +1,15 @@
 [submodule "alpaca-lora"]
 	path = tools/alpaca-lora
-	url = https://github.com/bownwen/alpaca-lora.git
+	url = https://github.com/bowenwen/alpaca-lora.git
 [submodule "transformers"]
 	path = packages/transformers
-	url = https://github.com/bownwen/transformers.git
+	url = https://github.com/bowenwen/transformers.git
 [submodule "text-generation-webui"]
 	path = tools/text-generation-webui
-	url = https://github.com/bownwen/text-generation-webui.git
+	url = https://github.com/bowenwen/text-generation-webui.git
 [submodule "langchain"]
 	path = packages/langchain
-	url = https://github.com/bownwen/langchain.git
+	url = https://github.com/bowenwen/langchain.git
 [submodule "tools/GPTQ-for-LLaMa"]
 	path = tools/GPTQ-for-LLaMa
 	url = https://github.com/qwopqwop200/GPTQ-for-LLaMa.git
@@ -18,7 +18,7 @@
 	url = https://github.com/johnsmith0031/alpaca_lora_4bit
 [submodule "tools/llama.cpp"]
 	path = tools/llama.cpp
-	url = https://github.com/bownwen/llama.cpp.git
+	url = https://github.com/bowenwen/llama.cpp.git
 [submodule "tools/pgvector"]
 	path = tools/pgvector
 	url = https://github.com/pgvector/pgvector.git
