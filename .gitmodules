@@ -1,15 +1,12 @@
-[submodule "alpaca-lora"]
-	path = tools/alpaca-lora
-	url = https://github.com/bowenwen/alpaca-lora.git
-[submodule "transformers"]
-	path = packages/transformers
-	url = https://github.com/bowenwen/transformers.git
-[submodule "text-generation-webui"]
-	path = tools/text-generation-webui
-	url = https://github.com/bowenwen/text-generation-webui.git
 [submodule "langchain"]
 	path = packages/langchain
 	url = https://github.com/bowenwen/langchain.git
+[submodule "alpaca-lora"]
+	path = tools/alpaca-lora
+	url = https://github.com/bowenwen/alpaca-lora.git
+[submodule "text-generation-webui"]
+	path = tools/text-generation-webui
+	url = https://github.com/bowenwen/text-generation-webui.git
 [submodule "tools/GPTQ-for-LLaMa"]
 	path = tools/GPTQ-for-LLaMa
 	url = https://github.com/qwopqwop200/GPTQ-for-LLaMa.git
