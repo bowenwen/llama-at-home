@@ -20,10 +20,8 @@ git pull
 python setup_cuda.py install
 cd ../..
 # install dev version of transformers
-cd packages/transformers
 pip install cmake lit
-pip install --editable . --force-reinstall
-cd ../..
+pip install transformers
 # install dev version of langchain
 cd packages/langchain
 pip install --editable . --force-reinstall
