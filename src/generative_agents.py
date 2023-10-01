@@ -12,7 +12,7 @@ from langchain.prompts.prompt import PromptTemplate
 from src.util import agent_logs
 
 sys.path.append("./")
-from src.models import LlamaModelHandler
+from src.models import LlamaModelHandler, MistralModelHandler, EmbeddingHandler
 from src.docs import DocumentHandler
 from src.docs import AggregateRetrieval
 from src.agent_executor import AgentExecutorHandler
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     # Load model
     testAgent = LlamaModelHandler()
-    eb = testAgent.get_hf_embedding()
+    eb = EmbeddingHandler().get_hf_embedding()
     pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
     )

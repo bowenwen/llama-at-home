@@ -15,7 +15,7 @@ from langchain.agents import (
 )
 
 sys.path.append("./")
-from src.models import LlamaModelHandler
+from src.models import LlamaModelHandler, MistralModelHandler, EmbeddingHandler
 from src.docs import DocumentHandler
 from src.tools import ToolHandler
 from src.util import get_secrets, get_word_match_list, agent_logs
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     lora_name = "alpaca-lora-7b"
 
     testAgent = LlamaModelHandler()
-    embedding = testAgent.get_hf_embedding()
+    embedding = EmbeddingHandler().get_hf_embedding()
     pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
     )

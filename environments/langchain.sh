@@ -51,3 +51,8 @@ pip install pgvector
 pip install psycopg2
 # openai python wrapper
 pip install openai
+
+# Mistral AI updates
+pip install git+https://github.com/huggingface/transformers
+pip install "accelerate>=0.20.3" --upgrade
+pip install "bitsandbytes>=0.39.0" --upgrade

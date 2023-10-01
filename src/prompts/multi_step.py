@@ -8,6 +8,9 @@ Here is what you already know: {previous_tool_output}
 
 What would be a good follow up question to help you gather additional information?
 
+You want to maximize the information you get by asking different questions. You have already asked the following questions:
+{previous_follow_up_questions}
+
 ### Input:
 {main_prompt}
 
@@ -46,6 +49,17 @@ Question: {follow_up_question}
 
 ### Response:
 The most relevant search term would be """
+
+MULTI_STEP_TOOLSHORT_USER_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+### Instruction:
+Summarize the information in very few words.
+
+### Input:
+{search_term}
+
+### Response:
+"""
 
 MULTI_STEP_TOOL_GENERATE_PROMPT = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
 

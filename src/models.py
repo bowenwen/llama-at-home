@@ -5,7 +5,7 @@ from typing import Any, List, Optional, Type
 from pathlib import Path
 from peft import PeftModelForCausalLM
 from transformers import (
-    # AutoConfig,
+    AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
     LlamaForCausalLM,
@@ -26,6 +26,102 @@ import sys
 sys.path.append("./")
 
 from src.GPTQ_loader import load_quantized
+
+
+class MistralModelHandler:
+    """a wrapper to make creating a mistral AI agent easier"""
+
+    model_loaded = False
+    DIR_MODELS = "models"
+    model_name = "Mistral-7B-Instruct-v0.1"
+    model = None
+    tokenizer = None
+    hf = None
+    device = None
+
+    pipeline_args = {
+        "temperature": 0.1,
+    }
+
+    def __init__(self) -> None:
+        """init function"""
+        pass
+
+    @classmethod
+    def get_mistral_llm(cls) -> Type[HuggingFacePipeline]:
+        """get a previously loaded mistral, if it was never loaded, return mistral-7b with max_new_tokens=200
+
+        Returns:
+            model_asset_tuple: a size three tuple of HuggingFacePipeline, model and tokenizer
+        """
+        if cls.model_loaded is False:
+            cls.load_mistral_llm(model_name=cls.model_name, max_new_tokens=200)
+            return (cls.hf, cls.model, cls.tokenizer)
+        return (cls.hf, cls.model, cls.tokenizer)
+
+    @classmethod
+    def load_mistral_llm(
+        cls, model_name=None, max_new_tokens=200
+    ) -> Type[HuggingFacePipeline]:
+        """quick loader of a local mistral model
+
+        Args:
+            model_name (str, optional): the model name of mistral or the folder name with models folder. Defaults to None.
+            lora_name (str, optional): the name of lora peft fine tuning model. Defaults to None.
+            max_new_tokens (int, optional): max token size used for model. Defaults to 50.
+
+        Returns:
+            model_asset_tuple: a size three tuple of HuggingFacePipeline, model and tokenizer
+        """
+        if cls.model_loaded and cls.model_name == model_name:
+            # return previously loaded model
+            return (cls.hf, cls.model, cls.tokenizer)
+
+        model_path = f"{cls.DIR_MODELS}/{cls.model_name}"
+        cls.max_new_tokens = max_new_tokens
+
+        # set config
+        cls.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        config = AutoConfig.from_pretrained(Path(model_path))
+        config.max_position_embeddings = 8096
+        quantization_config = BitsAndBytesConfig(
+            llm_int8_enable_fp32_cpu_offload=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype="bfloat16",
+            load_in_4bit=True,
+        )
+
+        # load tokenizer
+        cls.tokenizer = AutoTokenizer.from_pretrained(
+            Path(f"{model_path}/"), use_fast=True
+        )
+
+        # load model
+        cls.model = AutoModelForCausalLM.from_pretrained(
+            Path(model_path),
+            config=config,
+            trust_remote_code=True,
+            quantization_config=quantization_config,
+            device_map="auto",
+            offload_folder="./offload",
+        )
+
+        # build hf pipeline for langchain
+        pipe = pipeline(
+            model=cls.model,
+            task="text-generation",
+            # framework="pt",
+            tokenizer=cls.tokenizer,
+            max_new_tokens=cls.max_new_tokens,
+            # device=cls.device,
+            **cls.pipeline_args,
+        )
+        # # fix missing new line characters for the model
+        # cls.model.resize_token_embeddings(len(cls.tokenizer))
+        cls.hf = HuggingFacePipeline(pipeline=pipe)
+        cls.model_loaded = True
+        return (cls.hf, cls.model, cls.tokenizer)
 
 
 class LlamaModelHandler:
@@ -321,6 +417,16 @@ class LlamaModelHandler:
         cls.model_loaded = True
         return (cls.hf, cls.model, cls.tokenizer)
 
+
+class EmbeddingHandler:
+    """a wrapper to make creating a mistral AI agent easier"""
+
+    embedding = None
+
+    def __init__(self) -> None:
+        """init function"""
+        pass
+
     @classmethod
     def get_hf_embedding(cls) -> Type[HuggingFaceEmbeddings]:
         if cls.embedding == None:
@@ -358,7 +464,7 @@ if __name__ == "__main__":
     lora_name = "alpaca-lora-7b"
 
     testAgent = LlamaModelHandler()
-    embedding = testAgent.get_hf_embedding()
+    embedding = EmbeddingHandler().get_hf_embedding()
     pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
     )

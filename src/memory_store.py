@@ -25,7 +25,7 @@ from langchain.vectorstores.pgvector import EmbeddingStore, PGVector
 from langchain.embeddings.base import Embeddings
 
 sys.path.append("./")
-from src.models import LlamaModelHandler
+from src.models import LlamaModelHandler, MistralModelHandler, EmbeddingHandler
 from src.prompts.memory import IMPORTANCE_RATING_PROMPT
 from langchain.text_splitter import TextSplitter
 

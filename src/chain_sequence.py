@@ -9,7 +9,7 @@ from langchain.chains.constitutional_ai.models import ConstitutionalPrinciple
 from langchain.prompts.prompt import PromptTemplate
 
 sys.path.append("./")
-from src.models import LlamaModelHandler
+from src.models import LlamaModelHandler, MistralModelHandler, EmbeddingHandler
 from src.docs import DocumentHandler
 from src.tools import ToolHandler
 from src.util import get_secrets, get_word_match_list, agent_logs
@@ -44,6 +44,7 @@ class ChainSequence:
             },
         ]
         """
+        self.new_session = kwarg["new_session"] if "new_session" in kwarg else False
         self.use_cache_from_log = (
             kwarg["use_cache_from_log"] if "use_cache_from_log" in kwarg else False
         )
@@ -75,14 +76,14 @@ class ChainSequence:
         task_list = list(self.chains.keys())
         task_list_str = "+".join(task_list)
 
-        # set cache state to save cache logs
-        cached_response = agent_logs.set_cache_lookup(
-            f"Custom Chains - {task_list_str} - {input}"
-        )
-        # if using cache from logs saved, then try to load previous log
-        if cached_response is not None and self.use_cache_from_log:
-            return cached_response
-        elif self.use_cache_from_log is False:
+        if self.new_session:
+            # set cache state to save cache logs
+            cached_response = agent_logs.set_cache_lookup(
+                f"Custom Chains - {task_list_str} - {input}"
+            )
+            # if using cache from logs saved, then try to load previous log
+            if cached_response is not None and self.use_cache_from_log:
+                return cached_response
             agent_logs().clear_log()
 
         print(f"> Initiating {self.chain_name} sequence for {task_list_str}...")
@@ -125,7 +126,7 @@ class ChainSequence:
         return chain
 
     def _init_constitutional_chain(self, llm_chain, llm, principles=["ethical"]):
-        constitutional_principles = List()
+        constitutional_principles = list()
         for pre_defined in principles:
             if isinstance(pre_defined, ConstitutionalPrinciple):
                 constitutional_principles.append(constitutional_principles)
@@ -161,14 +162,20 @@ class ChainSequence:
 if __name__ == "__main__":
     # test this class
 
-    # select model and lora
-    model_name = "llama-7b"
-    lora_name = "alpaca-lora-7b"
+    # # select model and lora
+    # model_name = "llama-7b"
+    # lora_name = "alpaca-lora-7b"
 
-    testAgent = LlamaModelHandler()
-    embedding = testAgent.get_hf_embedding()
-    pipeline, model, tokenizer = testAgent.load_llama_llm(
-        model_name=model_name, lora_name=lora_name, max_new_tokens=200
+    # testAgent = LlamaModelHandler()
+    # embedding = EmbeddingHandler().get_hf_embedding()
+    # pipeline, model, tokenizer = testAgent.load_llama_llm(
+    #     model_name=model_name, lora_name=lora_name, max_new_tokens=200
+    # )
+
+    testAgent = MistralModelHandler()
+    eb = EmbeddingHandler().get_hf_embedding()
+    pipeline, model, tokenizer = testAgent.load_mistral_llm(
+        model_name="Mistral-7B-Instruct-v0.1", max_new_tokens=200
     )
 
     # test 1
@@ -191,9 +198,7 @@ if __name__ == "__main__":
     }
     # add document retrievers to tools
     if len(test_doc_info) > 0:
-        newDocs = DocumentHandler(
-            embedding=embedding, redis_host=get_secrets("redis_host")
-        )
+        newDocs = DocumentHandler(embedding=eb, redis_host=get_secrets("redis_host"))
         tools_list = newDocs.get_tool_from_doc(
             pipeline=pipeline,
             doc_info=test_doc_info,

@@ -13,7 +13,7 @@ from langchain.agents import (
 
 sys.path.append("./")
 from src.gradio_ui import WebUI
-from src.models import LlamaModelHandler
+from src.models import LlamaModelHandler, MistralModelHandler, EmbeddingHandler
 from src.agent_tool_selection import AgentToolSelection
 from src.docs import DocumentHandler
 from src.tools import ToolHandler
@@ -24,6 +24,7 @@ from src.prompts.multi_step import (
     MULTI_STEP_TOOL_FOLLOW_UP_PROMPT,
     MULTI_STEP_TOOL_PICKER_PROMPT,
     MULTI_STEP_TOOL_USER_PROMPT,
+    MULTI_STEP_TOOLSHORT_USER_PROMPT,
     MULTI_STEP_TOOL_CRITIC_EVIDENCE_PROMPT,
     MULTI_STEP_TOOL_GENERATE_PROMPT,
     MULTI_STEP_TOOL_CRITIC_PROMPT,
@@ -65,8 +66,12 @@ class AgentMultiStepCritic:
         self.generate_search_term = (
             kwarg["generate_search_term"] if "generate_search_term" in kwarg else True
         )
-        self.min_tool_use = kwarg["min_tool_use"] if "min_tool_use" in kwarg else 1
-        self.max_tool_use = kwarg["max_tool_use"] if "max_tool_use" in kwarg else 5
+        self.min_tool_use = kwarg["min_tool_use"] if "min_tool_use" in kwarg else 0
+        self.max_tool_use = (
+            kwarg["max_tool_use"]
+            if "max_tool_use" in kwarg
+            else (len(tool_names) * 2 + len(doc_info))
+        )
         self.use_cache_from_log = (
             kwarg["use_cache_from_log"] if "use_cache_from_log" in kwarg else False
         )
@@ -142,20 +147,33 @@ class AgentMultiStepCritic:
         tools_used = list()
         previous_tool_output = ""
         preliminary_answer = ""
+        previous_follow_up_questions = ""
         number_of_tries = 0
         while enough_info == False and number_of_tries < self.max_tool_use:
             # step 1: ask follow up question
-            follow_up_question_prompt = MULTI_STEP_TOOL_FOLLOW_UP_PROMPT.replace(
-                "{main_prompt}", main_prompt
-            ).replace(
-                "{previous_tool_output}",
-                "nothing yet" if previous_tool_output == "" else previous_tool_output,
+            follow_up_question_prompt = (
+                MULTI_STEP_TOOL_FOLLOW_UP_PROMPT.replace("{main_prompt}", main_prompt)
+                .replace(
+                    "{previous_tool_output}",
+                    "nothing yet"
+                    if previous_tool_output == ""
+                    else previous_tool_output,
+                )
+                .replace(
+                    "{previous_follow_up_questions}",
+                    "nothing yet"
+                    if previous_follow_up_questions == ""
+                    else previous_follow_up_questions,
+                )
             )
             print(follow_up_question_prompt)
             follow_up_question = self.pipeline(follow_up_question_prompt)
             follow_up_question = re.sub(
                 r'[^\x00-\x7f"]', "", follow_up_question
             ).strip()
+            previous_follow_up_questions = (
+                f"{previous_follow_up_questions}...{follow_up_question}"
+            )
             agent_logs.write_log_and_print(
                 f"Thought: {follow_up_question}"
                 if preliminary_answer == ""
@@ -175,15 +193,15 @@ class AgentMultiStepCritic:
             print(tool_picker_prompt)
             tool_picked = self.pipeline(tool_picker_prompt)
             tool_picked = re.sub(r'[^\x00-\x7f"]', "", tool_picked).strip()
-            agent_logs.write_log_and_print(f"Action: {tool_picked}")
             # handling error with picking tool
             tool_bool_processor = [tool_picked.lower() in i.lower() for i in tool_list]
             tool_picked_index = (
                 tool_bool_processor.index(True)
                 if True in tool_bool_processor
-                else random.randint(1, len(tool_list))
+                else (random.randint(1, len(tool_list)) - 1)
             )
             current_tool = tools[tool_picked_index]
+            agent_logs.write_log_and_print(f"Action: {current_tool.name}")
             if current_tool.name not in tools_used:
                 tools_used.append(current_tool.name)
             # step 3: pick an input for the tool
@@ -205,8 +223,16 @@ class AgentMultiStepCritic:
                 tool_input = self.pipeline(tool_user_prompt)
                 # remove quotation mark and non unicode characters
                 tool_input = re.sub(r'[^\x00-\x7f"]', "", tool_input).strip()
+                tool_input = tool_input.replace('"', "")
+                tool_input = tool_input.replace("'", "")
                 # stripe any text after period
                 tool_input = tool_input.split(".")[0]
+                if len(tool_input) > 15:
+                    tool_user_prompt2 = MULTI_STEP_TOOLSHORT_USER_PROMPT.replace(
+                        "{search_term}", tool_input
+                    )
+                    print(tool_user_prompt2)
+                    tool_input = self.pipeline(tool_user_prompt2)
             else:
                 tool_input = follow_up_question
             agent_logs.write_log_and_print(f"Action Input: {tool_input}")
@@ -295,14 +321,19 @@ class AgentMultiStepCritic:
 if __name__ == "__main__":
     # test this class
 
-    # select model and lora
-    model_name = "llama-7b"
-    lora_name = "alpaca-lora-7b"
+    # # select model and lora
+    # model_name = "llama-7b"
+    # lora_name = "alpaca-lora-7b"
+    # testAgent = LlamaModelHandler()
+    # eb = EmbeddingHandler().get_hf_embedding()
+    # pipeline, model, tokenizer = testAgent.load_llama_llm(
+    #     model_name=model_name, lora_name=lora_name, max_new_tokens=200
+    # )
 
-    testAgent = LlamaModelHandler()
-    eb = testAgent.get_hf_embedding()
-    pipeline, model, tokenizer = testAgent.load_llama_llm(
-        model_name=model_name, lora_name=lora_name, max_new_tokens=200
+    testAgent = MistralModelHandler()
+    eb = EmbeddingHandler().get_hf_embedding()
+    pipeline, model, tokenizer = testAgent.load_mistral_llm(
+        model_name="Mistral-7B-Instruct-v0.1", max_new_tokens=200
     )
 
     # define tool list (excluding any documents)
@@ -310,11 +341,11 @@ if __name__ == "__main__":
 
     # define test documents
     test_doc_info = {
-        "examples": {
-            "tool_name": "State of Union Document",
-            "description": "President Joe Biden's 2023 state of the union address.",
-            "files": ["index-docs/examples/state_of_the_union.txt"],
-        }
+        # "examples": {
+        #     "tool_name": "State of Union Document",
+        #     "description": "President Joe Biden's 2023 state of the union address.",
+        #     "files": ["index-docs/examples/state_of_the_union.txt"],
+        # }
     }
 
     # initiate agent executor
