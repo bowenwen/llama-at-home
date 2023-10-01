@@ -45,7 +45,7 @@ class ToolHandler:
         wiki_tool = Tool(
             name="Wikipedia",
             func=self.summarize_wikipedia,
-            # func=truncate_wikipedia,
+            # func=self.truncate_wikipedia,
             description="general information and well-established facts on a topic.",
         )
         return wiki_tool

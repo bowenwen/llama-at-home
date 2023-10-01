@@ -128,6 +128,12 @@ class PGMemoryStoreSetter(PGMemoryStoreBase):
         id_text = f"{store_time}_{text}"
         id_hash = hashlib.md5(id_text.strip().encode()).hexdigest()
 
+        # type correct retrieval_eligible to string
+        if retrieval_eligible == True:
+            retrieval_eligible = "True"
+        elif retrieval_eligible == False:
+            retrieval_eligible = "False"
+
         # build metadata
         json_metadata = [
             {
@@ -297,10 +303,10 @@ class PGMemoryStoreRetriever(PGMemoryStoreBase):
 if __name__ == "__main__":
     # model_name = "llama-13b"
     # lora_name = "alpaca-gpt4-lora-13b-3ep"
-    model_name = "llama-7b"
-    lora_name = "alpaca-lora-7b"
-    testAgent = LlamaModelHandler()
-    eb = testAgent.get_hf_embedding()
+    # model_name = "llama-7b"
+    # lora_name = "alpaca-lora-7b"
+    testAgent = MistralModelHandler()
+    eb = EmbeddingHandler().get_hf_embedding()
 
     pipeline, model, tokenizer = testAgent.load_llama_llm(
         model_name=model_name, lora_name=lora_name, max_new_tokens=200
