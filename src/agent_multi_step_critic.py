@@ -281,7 +281,7 @@ class AgentMultiStepCritic:
                 critique_answer = self.pipeline(critique_prompt)
                 print(critique_answer)
             # step 8: decide if final answer is ready
-            if critique_answer.lower() == "yes":
+            if "yes" in critique_answer.lower():
                 enough_info = True
                 final_answer = preliminary_answer
                 memory_thought = agent_logs.read_log()
